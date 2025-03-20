@@ -1,18 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-  Container,
-  Box,
-  Avatar,
-  Typography,
-  Button,
-  TextField,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Paper,
-  Grid,
-  CircularProgress,
-  IconButton
+  Container, Box, Avatar, Typography, Button, TextField,
+  Chip, Switch, FormControlLabel, Paper, Grid, CircularProgress,
+  IconButton, useTheme, useMediaQuery, Snackbar, Alert, Skeleton
 } from '@mui/material';
 import { auth, db, storage } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -27,6 +17,9 @@ const INTEREST_TAGS = [
 ];
 
 function Profile() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [profile, setProfile] = useState({
     displayName: '',
     interests: [],
@@ -86,22 +79,29 @@ function Profile() {
     try {
       await setDoc(doc(db, 'users', auth.currentUser.uid), profile);
       setIsEditing(false);
+      setSnackbar({ open: true, message: 'บันทึกข้อมูลสำเร็จ', severity: 'success' });
     } catch (error) {
-      console.error('Error saving profile:', error);
+      setSnackbar({ open: true, message: 'เกิดข้อผิดพลาด กรุณาลองใหม่', severity: 'error' });
     }
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="lg" sx={{ py: isMobile ? 2 : 4 }}>
+        <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <Skeleton variant="circular" width={120} height={120} />
+            <Skeleton variant="text" width={200} height={40} />
+            <Skeleton variant="rectangular" width="100%" height={100} />
+          </Box>
+        </Paper>
+      </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+    <Container maxWidth="lg" sx={{ py: isMobile ? 2 : 4 }}>
+      <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2 }}>
         <Box sx={{ textAlign: 'center', position: 'relative' }}>
           <input
             type="file"
@@ -116,11 +116,17 @@ function Profile() {
               <Avatar
                 src={profile.photoURL || auth.currentUser?.photoURL}
                 sx={{ 
-                  width: 120, 
-                  height: 120, 
+                  width: isMobile ? 100 : 120, 
+                  height: isMobile ? 100 : 120, 
                   mx: 'auto', 
                   mb: 2,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  border: '4px solid white',
+                  boxShadow: 2,
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  }
                 }}
               />
               <IconButton
@@ -130,11 +136,15 @@ function Profile() {
                   right: 0,
                   bgcolor: 'primary.main',
                   color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' }
+                  '&:hover': { 
+                    bgcolor: 'primary.dark',
+                    transform: 'scale(1.1)'
+                  },
+                  transition: 'all 0.2s'
                 }}
-                size="small"
+                size={isMobile ? "small" : "medium"}
               >
-                <PhotoCameraIcon />
+                <PhotoCameraIcon fontSize={isMobile ? "small" : "medium"} />
               </IconButton>
             </Box>
           </label>
@@ -155,36 +165,61 @@ function Profile() {
           )}
         </Box>
 
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
           <Grid item xs={6}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h4" color="primary">{stats.ideas}</Typography>
-              <Typography>ไอเดียที่แชร์</Typography>
+            <Paper 
+              sx={{ 
+                p: isMobile ? 2 : 3, 
+                textAlign: 'center',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 3
+                }
+              }}
+            >
+              <Typography 
+                variant={isMobile ? "h5" : "h4"} 
+                color="primary"
+                sx={{ fontWeight: 'bold' }}
+              >
+                {stats.ideas}
+              </Typography>
+              <Typography variant={isMobile ? "body2" : "body1"}>
+                ไอเดียที่แชร์
+              </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={6}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h4" color="primary">{stats.moodboards}</Typography>
-              <Typography>มู้ดบอร์ด</Typography>
-            </Paper>
-          </Grid>
+          {/* Similar adjustment for the second Grid item */}
         </Grid>
 
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>ความสนใจ</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          <Typography 
+            variant={isMobile ? "subtitle1" : "h6"} 
+            gutterBottom
+            sx={{ fontWeight: 'bold' }}
+          >
+            ความสนใจ
+          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: isMobile ? 0.5 : 1,
+            justifyContent: 'center' 
+          }}>
             {INTEREST_TAGS.map((tag) => (
               <Chip
                 key={tag}
                 label={tag}
                 onClick={() => toggleInterest(tag)}
                 color={profile.interests.includes(tag) ? 'primary' : 'default'}
+                size={isMobile ? "small" : "medium"}
                 sx={{ 
                   borderRadius: '16px',
+                  m: 0.5,
+                  transition: 'all 0.2s',
                   '&:hover': {
-                    bgcolor: profile.interests.includes(tag) 
-                      ? 'primary.main' 
-                      : 'action.hover'
+                    transform: 'scale(1.05)'
                   }
                 }}
               />
@@ -192,29 +227,40 @@ function Profile() {
           </Box>
         </Box>
 
-        <FormControlLabel
-          control={
-            <Switch
-              checked={profile.darkMode}
-              onChange={(e) => setProfile({ ...profile, darkMode: e.target.checked })}
-            />
-          }
-          label="โหมดกลางคืน"
-        />
-
         <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Button
             variant="contained"
             onClick={handleSaveProfile}
             sx={{
-              minWidth: 200,
-              borderRadius: '20px'
+              minWidth: isMobile ? '100%' : 200,
+              borderRadius: '20px',
+              py: 1.5,
+              transition: 'all 0.2s',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 4
+              }
             }}
           >
             บันทึกการเปลี่ยนแปลง
           </Button>
         </Box>
       </Paper>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

@@ -7,9 +7,10 @@ import {
   IconButton,
   Typography,
   Avatar,
-  Chip,
-  Divider,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Tooltip
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { collection, query, orderBy, limit, addDoc, onSnapshot } from 'firebase/firestore';
@@ -22,6 +23,8 @@ function Chat() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -66,19 +69,33 @@ function Chat() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ height: 'calc(100vh - 64px)', py: 2 }}>
+    <Container 
+      maxWidth="md" 
+      sx={{ 
+        height: isMobile ? 'calc(100vh - 56px)' : 'calc(100vh - 64px)', 
+        py: isMobile ? 0 : 2,
+        px: isMobile ? 0 : 2
+      }}
+    >
       <Paper 
-        elevation={3}
+        elevation={isMobile ? 0 : 3}
         sx={{
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
+          borderRadius: isMobile ? 0 : 2,
           overflow: 'hidden'
         }}
       >
-        <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">แชทกลุ่ม</Typography>
+        <Box sx={{ 
+          p: 2, 
+          bgcolor: 'primary.main', 
+          color: 'white',
+          boxShadow: 1
+        }}>
+          <Typography variant={isMobile ? "subtitle1" : "h6"} fontWeight="500">
+            แชทกลุ่ม
+          </Typography>
         </Box>
 
         <Box 
@@ -89,7 +106,20 @@ function Chat() {
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
-            bgcolor: '#f5f5f5'
+            bgcolor: '#f5f5f5',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#555',
+            }
           }}
         >
           {loading ? (
@@ -109,29 +139,51 @@ function Chat() {
                     gap: 1
                   }}
                 >
-                  <Avatar src={message.userPhoto} />
+                  <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
+                    <Avatar 
+                      src={message.userPhoto} 
+                      sx={{ 
+                        width: isMobile ? 32 : 40, 
+                        height: isMobile ? 32 : 40,
+                        boxShadow: 1
+                      }} 
+                    />
+                  </Tooltip>
                   <Box
                     sx={{
-                      maxWidth: '70%',
+                      maxWidth: isMobile ? '75%' : '70%',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: isCurrentUser ? 'flex-end' : 'flex-start'
                     }}
                   >
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{ mb: 0.5, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
+                    >
                       {message.userName}
                     </Typography>
                     <Paper
+                      elevation={1}
                       sx={{
                         p: 1.5,
                         bgcolor: isCurrentUser ? 'primary.main' : 'white',
                         color: isCurrentUser ? 'white' : 'inherit',
-                        borderRadius: 2
+                        borderRadius: 2,
+                        maxWidth: '100%',
+                        wordBreak: 'break-word'
                       }}
                     >
-                      <Typography>{message.text}</Typography>
+                      <Typography sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }}>
+                        {message.text}
+                      </Typography>
                     </Paper>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{ mt: 0.5, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
+                    >
                       {formatDistanceToNow(message.createdAt.toDate(), { 
                         addSuffix: true,
                         locale: th 
@@ -144,17 +196,17 @@ function Chat() {
           )}
           <div ref={messagesEndRef} />
         </Box>
-
-        <Divider />
         
         <Box 
           component="form" 
           onSubmit={handleSubmit}
           sx={{
-            p: 2,
+            p: isMobile ? 1 : 2,
             display: 'flex',
             gap: 1,
-            bgcolor: 'background.paper'
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider'
           }}
         >
           <TextField
@@ -163,10 +215,11 @@ function Chat() {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             variant="outlined"
-            size="small"
+            size={isMobile ? "small" : "medium"}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 3
+                borderRadius: 3,
+                bgcolor: '#f5f5f5'
               }
             }}
           />
@@ -177,6 +230,8 @@ function Chat() {
             sx={{
               bgcolor: 'primary.main',
               color: 'white',
+              width: isMobile ? 40 : 48,
+              height: isMobile ? 40 : 48,
               '&:hover': {
                 bgcolor: 'primary.dark'
               },
@@ -186,7 +241,7 @@ function Chat() {
               }
             }}
           >
-            <SendIcon />
+            <SendIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
           </IconButton>
         </Box>
       </Paper>

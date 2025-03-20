@@ -1,19 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  Container,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  Typography,
-  Button,
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  IconButton,
-  CircularProgress
+  Container, Grid, Card, CardMedia, CardContent, Typography,
+  Button, Box, Dialog, DialogTitle, DialogContent, TextField,
+  IconButton, CircularProgress, useTheme, useMediaQuery,
+  Snackbar, Alert, DialogActions, ImageList, ImageListItem
 } from '@mui/material';
 import { storage, db, auth } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -62,9 +52,20 @@ function MoodBoard() {
     }
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  const handleSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newMood.file || !newMood.title) return;
+    if (!newMood.file || !newMood.title) {
+      handleSnackbar('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+      return;
+    }
 
     setUploading(true);
     try {
@@ -83,24 +84,38 @@ function MoodBoard() {
 
       setNewMood({ title: '', description: '', file: null });
       setOpenDialog(false);
+      handleSnackbar('อัพโหลดรูปภาพสำเร็จ');
       loadImages();
     } catch (error) {
-      console.error('Error uploading image:', error);
+      handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ 
+      py: isMobile ? 2 : 4,
+      px: isMobile ? 1 : 2
+    }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        mb: 4 
+        mb: isMobile ? 2 : 4,
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 2 : 0
       }}>
-        <Typography variant="h4" sx={{ color: '#2C3E50', fontWeight: 'bold' }}>
-          <ColorLensIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
+        <Typography 
+          variant={isMobile ? "h5" : "h4"} 
+          sx={{ 
+            color: '#2C3E50', 
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <ColorLensIcon sx={{ mr: 1, fontSize: isMobile ? 24 : 32 }} />
           มู้ดบอร์ด
         </Typography>
         <Button
@@ -108,7 +123,10 @@ function MoodBoard() {
           onClick={() => setOpenDialog(true)}
           sx={{
             bgcolor: '#4ECDC4',
-            '&:hover': { bgcolor: '#45B7D1' }
+            '&:hover': { bgcolor: '#45B7D1' },
+            width: isMobile ? '100%' : 'auto',
+            borderRadius: '20px',
+            py: 1.5
           }}
         >
           เพิ่มรูปภาพ
@@ -120,25 +138,32 @@ function MoodBoard() {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <ImageList 
+          variant="masonry" 
+          cols={isMobile ? 1 : 3} 
+          gap={isMobile ? 8 : 16}
+        >
           {images.map((image) => (
-            <Grid item xs={12} sm={6} md={4} key={image.id}>
+            <ImageListItem key={image.id}>
               <Card 
                 sx={{ 
-                  height: '100%',
-                  transition: 'transform 0.2s',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
                     boxShadow: 4
-                  }
+                  },
+                  borderRadius: 2,
+                  overflow: 'hidden'
                 }}
               >
                 <CardMedia
                   component="img"
-                  height="200"
                   image={image.imageUrl}
                   alt={image.title}
-                  sx={{ objectFit: 'cover' }}
+                  sx={{ 
+                    objectFit: 'cover',
+                    aspectRatio: '16/9'
+                  }}
                 />
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -147,14 +172,18 @@ function MoodBoard() {
                   <Typography variant="body2" color="text.secondary">
                     {image.description}
                   </Typography>
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                  <Typography 
+                    variant="caption" 
+                    display="block" 
+                    sx={{ mt: 1, color: 'text.secondary' }}
+                  >
                     โดย {image.userName}
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
+            </ImageListItem>
           ))}
-        </Grid>
+        </ImageList>
       )}
 
       <Dialog 
@@ -162,6 +191,7 @@ function MoodBoard() {
         onClose={() => !uploading && setOpenDialog(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>เพิ่มรูปภาพใหม่</DialogTitle>
         <DialogContent>
@@ -237,6 +267,21 @@ function MoodBoard() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

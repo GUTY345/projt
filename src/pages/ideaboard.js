@@ -3,7 +3,8 @@ import {
   Container, Typography, Card, CardContent, Button, TextField,
   Grid, Select, MenuItem, FormControl, InputLabel, Chip,
   Box, Avatar, IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, CircularProgress
+  DialogActions, CircularProgress, useTheme, useMediaQuery,
+  Tooltip, Snackbar, Alert
 } from '@mui/material';
 import { collection, query, orderBy, addDoc, getDocs, where } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
@@ -21,6 +22,8 @@ const CATEGORIES = [
 ];
 
 function IdeaBoard() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [ideas, setIdeas] = useState([]);
   const [newIdea, setNewIdea] = useState({
     title: '',
@@ -33,6 +36,7 @@ function IdeaBoard() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     loadIdeas();
@@ -80,9 +84,18 @@ function IdeaBoard() {
     });
   };
 
+  // Add snackbar handler
+  const handleSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // Update handleSubmit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      handleSnackbar('กรุณาเข้าสู่ระบบก่อน', 'error');
+      return;
+    }
 
     try {
       await addDoc(collection(db, 'ideas'), {
@@ -95,9 +108,10 @@ function IdeaBoard() {
         comments: []
       });
       setNewIdea({ title: '', description: '', category: '', tags: [] });
+      handleSnackbar('แชร์ไอเดียสำเร็จ');
       loadIdeas();
     } catch (error) {
-      console.error('Error adding idea:', error);
+      handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
     }
   };
 
@@ -107,20 +121,37 @@ function IdeaBoard() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: '#2C3E50', fontWeight: 'bold' }}>
+    <Container maxWidth="lg" sx={{ 
+      py: isMobile ? 2 : 4,
+      px: isMobile ? 1 : 2
+    }}>
+      <Typography 
+        variant={isMobile ? "h5" : "h4"} 
+        gutterBottom 
+        sx={{ 
+          color: '#2C3E50', 
+          fontWeight: 'bold',
+          mb: isMobile ? 2 : 3
+        }}
+      >
         แชร์ไอเดียของคุณ
       </Typography>
 
-      <Card sx={{ mb: 4, borderRadius: 2, boxShadow: 3 }}>
-        <CardContent>
+      <Card sx={{ 
+        mb: isMobile ? 2 : 4, 
+        borderRadius: 2, 
+        boxShadow: 3 
+      }}>
+        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
           <form onSubmit={handleSubmit}>
+            {/* Form fields with mobile responsive spacing */}
             <TextField
               fullWidth
               label="หัวข้อไอเดีย"
               value={newIdea.title}
               onChange={(e) => setNewIdea({ ...newIdea, title: e.target.value })}
-              sx={{ mb: 2 }}
+              sx={{ mb: isMobile ? 1.5 : 2 }}
+              size={isMobile ? "small" : "medium"}
             />
 
             <FormControl fullWidth sx={{ mb: 2 }}>
@@ -171,9 +202,12 @@ function IdeaBoard() {
             <Button 
               variant="contained" 
               type="submit"
+              fullWidth={isMobile}
               sx={{ 
                 bgcolor: '#FF6B6B',
-                '&:hover': { bgcolor: '#FF5252' }
+                '&:hover': { bgcolor: '#FF5252' },
+                borderRadius: '20px',
+                py: 1.5
               }}
             >
               แชร์ไอเดีย
@@ -182,44 +216,25 @@ function IdeaBoard() {
         </CardContent>
       </Card>
 
-      <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>กรองตามหมวดหมู่</InputLabel>
-          <Select
-            value={selectedCategory}
-            label="กรองตามหมวดหมู่"
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <MenuItem value="all">ทั้งหมด</MenuItem>
-            {CATEGORIES.map((cat) => (
-              <MenuItem key={cat.id} value={cat.id}>{cat.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Grid container spacing={3}>
-          {ideas.map((idea) => (
-            <Grid item xs={12} sm={6} md={4} key={idea.id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4
-                  }
-                }}
-                onClick={() => handleIdeaClick(idea)}
-              >
+      {/* Ideas Grid with mobile responsive layout */}
+      <Grid container spacing={isMobile ? 1.5 : 3}>
+        {ideas.map((idea) => (
+          <Grid item xs={12} sm={6} md={4} key={idea.id}>
+            <Card 
+              sx={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4
+                },
+                borderRadius: isMobile ? 1 : 2
+              }}
+              onClick={() => handleIdeaClick(idea)}
+            >
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar src={idea.userPhoto} sx={{ mr: 1 }} />
@@ -268,13 +283,14 @@ function IdeaBoard() {
             </Grid>
           ))}
         </Grid>
-      )}
 
+      {/* Mobile responsive dialog */}
       <Dialog 
         open={openDialog} 
         onClose={() => setOpenDialog(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
       >
         {selectedIdea && (
           <>
@@ -298,6 +314,22 @@ function IdeaBoard() {
           </>
         )}
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

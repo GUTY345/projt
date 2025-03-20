@@ -8,32 +8,24 @@ import {
   Typography,
   Box,
   Chip,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 
 const INTEREST_TAGS = [
-  'การเรียน',
-  'โปรเจกต์',
-  'วิจัย',
-  'งานกลุ่ม',
-  'การนำเสนอ',
-  'เทคโนโลยี',
-  'วิทยาศาสตร์',
-  'ศิลปะ',
-  'ดนตรี',
-  'กีฬา',
-  'ภาษา',
-  'การตลาด',
-  'ธุรกิจ',
-  'การเงิน',
-  'การออกแบบ'
+  'การเรียน', 'โปรเจกต์', 'วิจัย', 'งานกลุ่ม', 'การนำเสนอ',
+  'เทคโนโลยี', 'วิทยาศาสตร์', 'ศิลปะ', 'ดนตรี', 'กีฬา',
+  'ภาษา', 'การตลาด', 'ธุรกิจ', 'การเงิน', 'การออกแบบ'
 ];
 
 function WelcomeDialog({ open, onClose }) {
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const toggleInterest = (tag) => {
     setSelectedInterests(prev => 
@@ -71,30 +63,56 @@ function WelcomeDialog({ open, onClose }) {
       onClose={onClose} 
       maxWidth="sm" 
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          p: 2
+          borderRadius: isMobile ? 0 : 2,
+          p: isMobile ? 2 : 3,
+          height: isMobile ? '100%' : 'auto',
+          display: 'flex',
+          flexDirection: 'column'
         }
       }}
     >
-      <DialogTitle sx={{ textAlign: 'center' }}>
-        <Typography variant="h5" fontWeight="bold">
+      <DialogTitle sx={{ 
+        textAlign: 'center',
+        pt: isMobile ? 4 : 2
+      }}>
+        <Typography 
+          variant={isMobile ? "h6" : "h5"} 
+          fontWeight="bold"
+          sx={{ color: theme.palette.primary.main }}
+        >
           ยินดีต้อนรับสู่ StudyHub!
         </Typography>
       </DialogTitle>
 
-      <DialogContent>
-        <Typography align="center" gutterBottom color="text.secondary">
+      <DialogContent sx={{ 
+        flexGrow: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Typography 
+          align="center" 
+          gutterBottom 
+          color="text.secondary"
+          sx={{ 
+            maxWidth: '80%',
+            mb: 4,
+            fontSize: isMobile ? '0.9rem' : '1rem'
+          }}
+        >
           เลือกหัวข้อที่คุณสนใจเพื่อให้เราแสดงเนื้อหาที่เหมาะกับคุณ
         </Typography>
 
         <Box sx={{ 
           display: 'flex', 
           flexWrap: 'wrap', 
-          gap: 1, 
-          mt: 3,
-          justifyContent: 'center' 
+          gap: isMobile ? 0.8 : 1, 
+          justifyContent: 'center',
+          maxWidth: isMobile ? '100%' : '90%'
         }}>
           {INTEREST_TAGS.map((tag) => (
             <Chip
@@ -103,26 +121,44 @@ function WelcomeDialog({ open, onClose }) {
               onClick={() => toggleInterest(tag)}
               color={selectedInterests.includes(tag) ? 'primary' : 'default'}
               sx={{ 
+                m: 0.5,
                 borderRadius: '16px',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                height: isMobile ? '28px' : '32px',
                 '&:hover': {
                   backgroundColor: selectedInterests.includes(tag) 
-                    ? 'primary.main' 
-                    : 'action.hover'
-                }
+                    ? theme.palette.primary.dark 
+                    : theme.palette.action.hover,
+                  transform: 'scale(1.05)',
+                  transition: 'transform 0.2s'
+                },
+                transition: 'all 0.2s'
               }}
             />
           ))}
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ justifyContent: 'center', p: 3 }}>
+      <DialogActions sx={{ 
+        justifyContent: 'center', 
+        p: isMobile ? 2 : 3,
+        pb: isMobile ? 4 : 3
+      }}>
         <Button
           onClick={handleSave}
           variant="contained"
           disabled={selectedInterests.length === 0 || isSaving}
           sx={{ 
-            minWidth: 200,
-            borderRadius: '20px'
+            minWidth: isMobile ? '80%' : 200,
+            borderRadius: '20px',
+            py: 1.5,
+            fontSize: isMobile ? '0.9rem' : '1rem',
+            boxShadow: 2,
+            '&:hover': {
+              boxShadow: 4,
+              transform: 'translateY(-2px)'
+            },
+            transition: 'all 0.2s'
           }}
         >
           {isSaving ? (

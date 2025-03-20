@@ -1,20 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Box,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Chip,
-  CircularProgress
+  Container, Grid, Card, CardContent, Typography, TextField,
+  Button, Box, IconButton, Dialog, DialogTitle, DialogContent,
+  DialogActions, Chip, CircularProgress, useTheme, useMediaQuery,
+  Snackbar, Alert, Fade, Tooltip
 } from '@mui/material';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
@@ -23,6 +12,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 
 function Notes() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -71,9 +63,16 @@ function Notes() {
     });
   };
 
+  const handleSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newNote.title || !newNote.content) return;
+    if (!newNote.title || !newNote.content) {
+      handleSnackbar('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+      return;
+    }
 
     try {
       if (editingNote) {
@@ -89,12 +88,13 @@ function Notes() {
         createdAt: new Date()
       });
 
+      handleSnackbar(editingNote ? 'แก้ไขโน้ตสำเร็จ' : 'สร้างโน้ตสำเร็จ');
       setNewNote({ title: '', content: '', tags: [], currentTag: '' });
       setEditingNote(null);
       setOpenDialog(false);
       loadNotes();
     } catch (error) {
-      console.error('Error saving note:', error);
+      handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
     }
   };
 
@@ -119,15 +119,28 @@ function Notes() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ 
+      py: isMobile ? 2 : 4,
+      px: isMobile ? 1 : 2
+    }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        mb: 4 
+        mb: isMobile ? 2 : 4,
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 2 : 0
       }}>
-        <Typography variant="h4" sx={{ color: '#2C3E50', fontWeight: 'bold' }}>
-          <NoteAddIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
+        <Typography 
+          variant={isMobile ? "h5" : "h4"} 
+          sx={{ 
+            color: '#2C3E50', 
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <NoteAddIcon sx={{ mr: 1, fontSize: isMobile ? 24 : 32 }} />
           โน้ตของฉัน
         </Typography>
         <Button
@@ -139,7 +152,10 @@ function Notes() {
           }}
           sx={{
             bgcolor: '#96CEB4',
-            '&:hover': { bgcolor: '#7AB39C' }
+            '&:hover': { bgcolor: '#7AB39C' },
+            width: isMobile ? '100%' : 'auto',
+            borderRadius: '20px',
+            py: 1.5
           }}
         >
           สร้างโน้ตใหม่
@@ -151,59 +167,94 @@ function Notes() {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={isMobile ? 2 : 3}>
           {notes.map((note) => (
             <Grid item xs={12} sm={6} md={4} key={note.id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4
-                  }
-                }}
-              >
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6">{note.title}</Typography>
-                    <Box>
-                      <IconButton size="small" onClick={() => handleEdit(note)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => handleDelete(note.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ 
+              <Fade in timeout={500}>
+                <Card 
+                  sx={{ 
+                    height: '100%',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4
+                    },
+                    borderRadius: 2
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
                       mb: 2,
-                      minHeight: '60px',
-                      maxHeight: '120px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {note.content}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {note.tags?.map((tag, index) => (
-                      <Chip
-                        key={index}
-                        label={tag}
-                        size="small"
-                        sx={{ bgcolor: '#96CEB4', color: 'white' }}
-                      />
-                    ))}
-                  </Box>
-                  <Typography variant="caption" display="block" sx={{ mt: 2 }}>
-                    โดย {note.userName}
-                  </Typography>
-                </CardContent>
-              </Card>
+                      alignItems: 'flex-start'
+                    }}>
+                      <Typography 
+                        variant="h6"
+                        sx={{ 
+                          fontSize: isMobile ? '1.1rem' : '1.25rem',
+                          wordBreak: 'break-word',
+                          pr: 1
+                        }}
+                      >
+                        {note.title}
+                      </Typography>
+                      <Box>
+                        <Tooltip title="แก้ไข">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEdit(note)}
+                            sx={{ 
+                              color: '#96CEB4',
+                              '&:hover': { bgcolor: 'rgba(150, 206, 180, 0.1)' }
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="ลบ">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleDelete(note.id)}
+                            sx={{ 
+                              color: '#FF6B6B',
+                              '&:hover': { bgcolor: 'rgba(255, 107, 107, 0.1)' }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        mb: 2,
+                        minHeight: '60px',
+                        maxHeight: '120px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {note.content}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {note.tags?.map((tag, index) => (
+                        <Chip
+                          key={index}
+                          label={tag}
+                          size="small"
+                          sx={{ bgcolor: '#96CEB4', color: 'white' }}
+                        />
+                      ))}
+                    </Box>
+                    <Typography variant="caption" display="block" sx={{ mt: 2 }}>
+                      โดย {note.userName}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Fade>
             </Grid>
           ))}
         </Grid>
@@ -214,6 +265,7 @@ function Notes() {
         onClose={() => setOpenDialog(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>
           {editingNote ? 'แก้ไขโน้ต' : 'สร้างโน้ตใหม่'}
@@ -274,6 +326,21 @@ function Notes() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
