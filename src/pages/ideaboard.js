@@ -497,16 +497,21 @@ function IdeaBoard() {
                       border: '2px solid #fff',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                     }} />
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: 'primary.main',
-                        fontWeight: 500,
-                        '&:hover': { textDecoration: 'underline' }
-                      }}
-                    >
-                      {idea.userName || idea.userEmail.split('@')[0]}
-                    </Typography>
+                    <Box>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'primary.main',
+                          fontWeight: 500,
+                          '&:hover': { textDecoration: 'underline' }
+                        }}
+                      >
+                        {idea.userName || idea.userEmail.split('@')[0]}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {idea.createdAt ? new Date(idea.createdAt.toDate()).toLocaleString('th-TH') : 'ไม่ระบุเวลา'}
+                      </Typography>
+                    </Box>
                   </Box>
                   <Typography variant="h6" gutterBottom>{idea.title}</Typography>
                   <Chip
