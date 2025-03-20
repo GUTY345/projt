@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FF6B6B" />
+    <meta
+      name="description"
+      content="StudyHub - แพลตฟอร์มแชร์ไอเดียเรียนและทำงานกลุ่ม"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap"
+    />
+    <title>StudyHub - แชร์ไอเดีย เรียนรู้ร่วมกัน</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Prompt', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      #root {
+        min-height: 100vh;
+      }
+
+      .loading-screen {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #FF6B6B;
+      }
+
+      .loading-screen img {
+        width: 120px;
+        height: 120px;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>คุณต้องเปิดใช้งาน JavaScript เพื่อใช้งานแอพพลิเคชันนี้</noscript>
+    <div id="root">
+      <div class="loading-screen">
+        <img src="%PUBLIC_URL%/logo192.png" alt="Loading..." />
+      </div>
+    </div>
+  </body>
+</html>
