@@ -4,7 +4,7 @@ import {
   Grid, Select, MenuItem, FormControl, InputLabel, Chip,
   Box, Avatar, IconButton, Dialog, DialogTitle, DialogContent,
   DialogActions, CircularProgress, useTheme, useMediaQuery,
-  Tooltip, Snackbar, Alert
+  Snackbar, Alert
 } from '@mui/material';
 import { collection, query, orderBy, addDoc, getDocs, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
@@ -14,6 +14,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { containsInappropriateContent } from '../utils/contentFilter';
+import { serverTimestamp, getDoc } from 'firebase/firestore';
 
 const CATEGORIES = [
   { id: 'project', label: 'โปรเจกต์', color: '#FF6B6B' },
@@ -40,6 +41,12 @@ function IdeaBoard() {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingIdea, setEditingIdea] = useState(null);
+  const [comment, setComment] = useState('');
+  const [editingComment, setEditingComment] = useState(null);
+  const [loadingLike, setLoadingLike] = useState(false);
+  const [loadingComment, setLoadingComment] = useState(false);
 
   useEffect(() => {
     loadIdeas();
@@ -47,6 +54,7 @@ function IdeaBoard() {
 
   const loadIdeas = async () => {
     try {
+      setLoading(true);
       let q = query(collection(db, 'ideas'), orderBy('createdAt', 'desc'));
       
       if (selectedCategory !== 'all') {
@@ -63,9 +71,10 @@ function IdeaBoard() {
         ...doc.data()
       }));
       setIdeas(ideasData);
-      setLoading(false);
     } catch (error) {
       console.error('Error loading ideas:', error);
+      setSnackbar({ open: true, message: 'เกิดข้อผิดพลาดในการโหลดไอเดีย', severity: 'error' });
+    } finally {
       setLoading(false);
     }
   };
@@ -87,16 +96,10 @@ function IdeaBoard() {
     });
   };
 
-  // Add snackbar handler
   const handleSnackbar = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
 
-  // Add state variables for editing
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingIdea, setEditingIdea] = useState(null);
-
-  // Add delete handler
   const handleDelete = async (ideaId) => {
     if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบไอเดียนี้?')) {
       try {
@@ -125,7 +128,6 @@ function IdeaBoard() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     
-    // Check if category is selected
     if (!newIdea.category) {
       handleSnackbar('กรุณาเลือกหมวดหมู่', 'error');
       return;
@@ -152,7 +154,6 @@ function IdeaBoard() {
     }
   };
 
-  // Update handleSubmit to include category validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!auth.currentUser) {
@@ -160,7 +161,6 @@ function IdeaBoard() {
       return;
     }
 
-    // Check if category is selected
     if (!newIdea.category) {
       handleSnackbar('กรุณาเลือกหมวดหมู่', 'error');
       return;
@@ -195,32 +195,162 @@ function IdeaBoard() {
     setOpenDialog(true);
   };
 
+  const handleLike = async (ideaId, e) => {
+    if (e) e.stopPropagation();
+    if (!auth.currentUser) {
+      handleSnackbar('กรุณาเข้าสู่ระบบก่อน', 'error');
+      return;
+    }
+
+    setLoadingLike(true);
+    try {
+      const ideaRef = doc(db, 'ideas', ideaId);
+      const ideaDoc = await getDoc(ideaRef);
+      const ideaData = ideaDoc.data();
+      const likedBy = ideaData.likedBy || [];
+      const hasLiked = likedBy.includes(auth.currentUser.uid);
+
+      await updateDoc(ideaRef, {
+        likes: hasLiked ? ideaData.likes - 1 : ideaData.likes + 1,
+        likedBy: hasLiked
+          ? likedBy.filter((uid) => uid !== auth.currentUser.uid)
+          : [...likedBy, auth.currentUser.uid],
+      });
+
+      if (selectedIdea?.id === ideaId) {
+        setSelectedIdea({
+          ...selectedIdea,
+          likes: hasLiked ? ideaData.likes - 1 : ideaData.likes + 1,
+          likedBy: hasLiked
+            ? likedBy.filter((uid) => uid !== auth.currentUser.uid)
+            : [...likedBy, auth.currentUser.uid],
+        });
+      }
+
+      loadIdeas();
+    } catch (error) {
+      handleSnackbar('เกิดข้อผิดพลาดในการกดถูกใจ', 'error');
+    } finally {
+      setLoadingLike(false);
+    }
+  };
+
+  const handleAddComment = async (ideaId) => {
+    if (!auth.currentUser) {
+      handleSnackbar('กรุณาเข้าสู่ระบบก่อน', 'error');
+      return;
+    }
+
+    if (!comment.trim()) return;
+
+    setLoadingComment(true);
+    try {
+      const ideaRef = doc(db, 'ideas', ideaId);
+      const ideaDoc = await getDoc(ideaRef);
+      const ideaData = ideaDoc.data();
+
+      const newComment = {
+        id: Date.now().toString(),
+        text: comment,
+        userId: auth.currentUser.uid,
+        userEmail: auth.currentUser.email,
+        userPhoto: auth.currentUser.photoURL || '',
+        createdAt: serverTimestamp(),
+      };
+
+      await updateDoc(ideaRef, {
+        comments: [...(ideaData.comments || []), newComment],
+      });
+
+      setComment('');
+      loadIdeas();
+      setSelectedIdea({
+        ...selectedIdea,
+        comments: [...(ideaData.comments || []), newComment],
+      });
+      handleSnackbar('เพิ่มความคิดเห็นสำเร็จ');
+    } catch (error) {
+      handleSnackbar('เกิดข้อผิดพลาดในการเพิ่มความคิดเห็น', 'error');
+    } finally {
+      setLoadingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (ideaId, commentId) => {
+    setLoadingComment(true);
+    try {
+      const ideaRef = doc(db, 'ideas', ideaId);
+      const ideaDoc = await getDoc(ideaRef);
+      const ideaData = ideaDoc.data();
+
+      await updateDoc(ideaRef, {
+        comments: ideaData.comments.filter((c) => c.id !== commentId),
+      });
+
+      setSelectedIdea({
+        ...selectedIdea,
+        comments: ideaData.comments.filter((c) => c.id !== commentId),
+      });
+      loadIdeas();
+      handleSnackbar('ลบความคิดเห็นสำเร็จ');
+    } catch (error) {
+      handleSnackbar('เกิดข้อผิดพลาดในการลบความคิดเห็น', 'error');
+    } finally {
+      setLoadingComment(false);
+    }
+  };
+
+  const handleEditComment = async (ideaId, commentId, newText) => {
+    if (!newText.trim()) {
+      setEditingComment(null);
+      return;
+    }
+
+    setLoadingComment(true);
+    try {
+      const ideaRef = doc(db, 'ideas', ideaId);
+      const ideaDoc = await getDoc(ideaRef);
+      const ideaData = ideaDoc.data();
+
+      const updatedComments = ideaData.comments.map((c) =>
+        c.id === commentId ? { ...c, text: newText } : c
+      );
+
+      await updateDoc(ideaRef, {
+        comments: updatedComments,
+      });
+
+      setSelectedIdea({
+        ...selectedIdea,
+        comments: updatedComments,
+      });
+      loadIdeas();
+      setEditingComment(null);
+      handleSnackbar('แก้ไขความคิดเห็นสำเร็จ');
+    } catch (error) {
+      handleSnackbar('เกิดข้อผิดพลาดในการแก้ไขความคิดเห็น', 'error');
+    } finally {
+      setLoadingComment(false);
+    }
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ 
-      py: isMobile ? 2 : 4,
-      px: isMobile ? 1 : 2
-    }}>
-      <Typography 
-        variant={isMobile ? "h5" : "h4"} 
-        gutterBottom 
-        sx={{ 
-          color: '#2C3E50', 
+    <Container maxWidth="lg" sx={{ py: isMobile ? 2 : 4, px: isMobile ? 1 : 2 }}>
+      <Typography
+        variant={isMobile ? "h5" : "h4"}
+        gutterBottom
+        sx={{
+          color: '#2C3E50',
           fontWeight: 'bold',
-          mb: isMobile ? 2 : 3
+          mb: isMobile ? 2 : 3,
         }}
       >
         แชร์ไอเดียของคุณ
       </Typography>
 
-      <Card sx={{ 
-        mb: isMobile ? 2 : 4, 
-        borderRadius: 2, 
-        boxShadow: 3 
-      }}>
+      <Card sx={{ mb: isMobile ? 2 : 4, borderRadius: 2, boxShadow: 3 }}>
         <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-          
           <form onSubmit={isEditing ? handleUpdate : handleSubmit}>
-            {/* Form fields with mobile responsive spacing */}
             <TextField
               fullWidth
               label="หัวข้อไอเดีย"
@@ -276,16 +406,16 @@ function IdeaBoard() {
               ))}
             </Box>
 
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               type={isEditing ? "button" : "submit"}
               onClick={isEditing ? handleUpdate : undefined}
               fullWidth={isMobile}
-              sx={{ 
+              sx={{
                 bgcolor: isEditing ? '#4CAF50' : '#FF6B6B',
                 '&:hover': { bgcolor: isEditing ? '#45a049' : '#FF5252' },
                 borderRadius: '20px',
-                py: 1.5
+                py: 1.5,
               }}
             >
               {isEditing ? 'อัพเดทไอเดีย' : 'แชร์ไอเดีย'}
@@ -294,25 +424,29 @@ function IdeaBoard() {
         </CardContent>
       </Card>
 
-      {/* Ideas Grid with mobile responsive layout */}
-      <Grid container spacing={isMobile ? 1.5 : 3}>
-        {ideas.map((idea) => (
-          <Grid item xs={12} sm={6} md={4} key={idea.id}>
-            <Card 
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: 4
-                },
-                borderRadius: isMobile ? 1 : 2
-              }}
-              onClick={() => handleIdeaClick(idea)}
-            >
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Grid container spacing={isMobile ? 1.5 : 3}>
+          {ideas.map((idea) => (
+            <Grid item xs={12} sm={6} md={4} key={idea.id}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
+                  },
+                  borderRadius: isMobile ? 1 : 2,
+                }}
+                onClick={() => handleIdeaClick(idea)}
+              >
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar src={idea.userPhoto} sx={{ mr: 1 }} />
@@ -321,8 +455,8 @@ function IdeaBoard() {
                     </Typography>
                   </Box>
                   <Typography variant="h6" gutterBottom>{idea.title}</Typography>
-                  <Chip 
-                    label={CATEGORIES.find(cat => cat.id === idea.category)?.label}
+                  <Chip
+                    label={CATEGORIES.find((cat) => cat.id === idea.category)?.label}
                     sx={{ mb: 1 }}
                   />
                   <Typography color="text.secondary" paragraph>
@@ -339,21 +473,60 @@ function IdeaBoard() {
                     ))}
                   </Box>
                 </CardContent>
-                <Box sx={{ 
-                  mt: 'auto', 
-                  p: 2, 
-                  borderTop: 1, 
-                  borderColor: 'divider',
-                  display: 'flex',
-                  justifyContent: 'space-around'
-                }}>
-                  <IconButton size="small">
-                    <ThumbUpIcon /> {idea.likes}
+
+                <Box
+                  sx={{
+                    mt: 'auto',
+                    p: 2,
+                    borderTop: 1,
+                    borderColor: 'divider',
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    alignItems: 'center',
+                  }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLike(idea.id, e);
+                    }}
+                    disabled={loadingLike}
+                    color={idea.likedBy?.includes(auth.currentUser?.uid) ? "primary" : "default"}
+                  >
+                    {loadingLike ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <>
+                        <ThumbUpIcon />
+                        <Typography variant="body2" sx={{ ml: 0.5 }}>
+                          {idea.likes || 0}
+                        </Typography>
+                      </>
+                    )}
                   </IconButton>
-                  <IconButton size="small">
-                    <CommentIcon /> {idea.comments?.length || 0}
+
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleIdeaClick(idea);
+                    }}
+                  >
+                    <CommentIcon />
+                    <Typography variant="body2" sx={{ ml: 0.5 }}>
+                      {idea.comments?.length || 0}
+                    </Typography>
                   </IconButton>
-                  <IconButton size="small">
+
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(`${window.location.origin}/idea/${idea.id}`);
+                      handleSnackbar('คัดลอกลิงก์สำเร็จ', 'success');
+                    }}
+                  >
                     <ShareIcon />
                   </IconButton>
                 </Box>
@@ -361,10 +534,10 @@ function IdeaBoard() {
             </Grid>
           ))}
         </Grid>
+      )}
 
-      {/* Mobile responsive dialog */}
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={() => setOpenDialog(false)}
         maxWidth="md"
         fullWidth
@@ -378,25 +551,156 @@ function IdeaBoard() {
                 <Typography variant="h6">{selectedIdea.title}</Typography>
               </Box>
             </DialogTitle>
+
             <DialogContent dividers>
-              <Typography paragraph>{selectedIdea.description}</Typography>
+              <Typography paragraph>{selectedIdea?.description}</Typography>
+
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                {selectedIdea.tags?.map((tag, index) => (
+                {selectedIdea?.tags?.map((tag, index) => (
                   <Chip key={index} label={tag} size="small" />
                 ))}
               </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <IconButton
+                  onClick={() => handleLike(selectedIdea.id)}
+                  color={selectedIdea?.likedBy?.includes(auth.currentUser?.uid) ? "primary" : "default"}
+                  disabled={loadingLike}
+                >
+                  {loadingLike ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <>
+                      <ThumbUpIcon />
+                      <Typography sx={{ ml: 1 }}>{selectedIdea?.likes || 0}</Typography>
+                    </>
+                  )}
+                </IconButton>
+              </Box>
+
+              <Typography variant="h6" gutterBottom>
+                ความคิดเห็น
+              </Typography>
+
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="เพิ่มความคิดเห็น..."
+                  disabled={loadingComment}
+                  InputProps={{
+                    endAdornment: (
+                      <Button
+                        onClick={() => handleAddComment(selectedIdea.id)}
+                        disabled={loadingComment || !comment.trim()}
+                      >
+                        {loadingComment ? <CircularProgress size={16} /> : 'ส่ง'}
+                      </Button>
+                    ),
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && comment.trim()) {
+                      handleAddComment(selectedIdea.id);
+                    }
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                {selectedIdea?.comments?.length > 0 ? (
+                  selectedIdea.comments.map((comment) => (
+                    <Box
+                      key={comment.id}
+                      sx={{
+                        mb: 2,
+                        p: 1,
+                        bgcolor: 'background.paper',
+                        borderRadius: 1,
+                        border: 1,
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <Avatar
+                          src={comment.userPhoto}
+                          alt={comment.userEmail}
+                          sx={{ width: 24, height: 24, mr: 1 }}
+                        />
+                        <Typography variant="body2" fontWeight="bold">
+                          {comment.userEmail}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                          {comment.createdAt
+                            ? new Date(comment.createdAt.toDate()).toLocaleString('th-TH')
+                            : 'ไม่ระบุวันที่'}
+                        </Typography>
+                      </Box>
+
+                      {editingComment === comment.id ? (
+                        <TextField
+                          fullWidth
+                          size="small"
+                          defaultValue={comment.text}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleEditComment(selectedIdea.id, comment.id, e.target.value);
+                            }
+                          }}
+                          onBlur={(e) => handleEditComment(selectedIdea.id, comment.id, e.target.value)}
+                        />
+                      ) : (
+                        <Typography variant="body2">{comment.text}</Typography>
+                      )}
+
+                      {comment.userId === auth.currentUser?.uid && (
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => setEditingComment(comment.id)}
+                            disabled={loadingComment}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบความคิดเห็นนี้?')) {
+                                handleDeleteComment(selectedIdea.id, comment.id);
+                              }
+                            }}
+                            disabled={loadingComment}
+                          >
+                            {loadingComment ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <DeleteIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Box>
+                      )}
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    ยังไม่มีความคิดเห็น
+                  </Typography>
+                )}
+              </Box>
             </DialogContent>
+
             <DialogActions>
               {selectedIdea?.userId === auth.currentUser?.uid && (
                 <>
-                  <Button 
+                  <Button
                     startIcon={<EditIcon />}
                     onClick={() => handleEdit(selectedIdea)}
                     color="primary"
                   >
                     แก้ไข
                   </Button>
-                  <Button 
+                  <Button
                     startIcon={<DeleteIcon />}
                     onClick={() => handleDelete(selectedIdea.id)}
                     color="error"
@@ -411,15 +715,14 @@ function IdeaBoard() {
         )}
       </Dialog>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

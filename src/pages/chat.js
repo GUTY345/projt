@@ -204,7 +204,7 @@ function Chat() {
               >
                 <Typography variant="subtitle2">{group.name}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
+                  {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธารณะ'}
                 </Typography>
               </Paper>
             ))}
