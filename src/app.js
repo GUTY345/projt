@@ -11,6 +11,7 @@ import {
 import { auth, db } from './firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import theme from './styles/theme';
+import createAppTheme from './styles/theme';
 
 // Components
 import Navbar from './components/navbar';

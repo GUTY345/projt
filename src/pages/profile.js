@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { auth, db, storage } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import EditIcon from '@mui/icons-material/Edit';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 
@@ -45,9 +45,21 @@ function Profile() {
   };
 
   const loadStats = async () => {
-    const statsDoc = await getDoc(doc(db, 'userStats', auth.currentUser.uid));
-    if (statsDoc.exists()) {
-      setStats(statsDoc.data());
+    try {
+      // Query ideas collection for user's ideas
+      const ideasQuery = query(
+        collection(db, 'ideas'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const ideasSnapshot = await getDocs(ideasQuery);
+      
+      // Update stats with actual count
+      setStats({
+        ...stats,
+        ideas: ideasSnapshot.size
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
     }
   };
 

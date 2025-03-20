@@ -3,6 +3,10 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { auth } from '../firebase/config';
+import { Badge, Popover } from '@mui/material';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 function Navbar({ user }) {
   const navigate = useNavigate();

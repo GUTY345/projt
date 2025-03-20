@@ -6,11 +6,14 @@ import {
   DialogActions, CircularProgress, useTheme, useMediaQuery,
   Tooltip, Snackbar, Alert
 } from '@mui/material';
-import { collection, query, orderBy, addDoc, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, getDocs, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import CommentIcon from '@mui/icons-material/Comment';
 import ShareIcon from '@mui/icons-material/Share';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import { containsInappropriateContent } from '../utils/contentFilter';
 
 const CATEGORIES = [
   { id: 'project', label: 'โปรเจกต์', color: '#FF6B6B' },
@@ -89,11 +92,83 @@ function IdeaBoard() {
     setSnackbar({ open: true, message, severity });
   };
 
-  // Update handleSubmit
+  // Add state variables for editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingIdea, setEditingIdea] = useState(null);
+
+  // Add delete handler
+  const handleDelete = async (ideaId) => {
+    if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบไอเดียนี้?')) {
+      try {
+        await deleteDoc(doc(db, 'ideas', ideaId));
+        handleSnackbar('ลบไอเดียสำเร็จ');
+        loadIdeas();
+        setOpenDialog(false);
+      } catch (error) {
+        handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      }
+    }
+  };
+
+  const handleEdit = (idea) => {
+    setIsEditing(true);
+    setEditingIdea(idea);
+    setNewIdea({
+      title: idea.title,
+      description: idea.description,
+      category: idea.category,
+      tags: idea.tags || []
+    });
+    setOpenDialog(false);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    
+    // Check if category is selected
+    if (!newIdea.category) {
+      handleSnackbar('กรุณาเลือกหมวดหมู่', 'error');
+      return;
+    }
+    
+    if (containsInappropriateContent(newIdea.title) || 
+        containsInappropriateContent(newIdea.description)) {
+      handleSnackbar('กรุณาใช้ภาษาที่สุภาพ', 'error');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'ideas', editingIdea.id), {
+        ...newIdea,
+        updatedAt: new Date()
+      });
+      handleSnackbar('อัพเดทไอเดียสำเร็จ');
+      setIsEditing(false);
+      setEditingIdea(null);
+      setNewIdea({ title: '', description: '', category: '', tags: [] });
+      loadIdeas();
+    } catch (error) {
+      handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+    }
+  };
+
+  // Update handleSubmit to include category validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!auth.currentUser) {
       handleSnackbar('กรุณาเข้าสู่ระบบก่อน', 'error');
+      return;
+    }
+
+    // Check if category is selected
+    if (!newIdea.category) {
+      handleSnackbar('กรุณาเลือกหมวดหมู่', 'error');
+      return;
+    }
+
+    if (containsInappropriateContent(newIdea.title) || 
+        containsInappropriateContent(newIdea.description)) {
+      handleSnackbar('กรุณาใช้ภาษาที่สุภาพ', 'error');
       return;
     }
 
@@ -143,7 +218,8 @@ function IdeaBoard() {
         boxShadow: 3 
       }}>
         <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-          <form onSubmit={handleSubmit}>
+          
+          <form onSubmit={isEditing ? handleUpdate : handleSubmit}>
             {/* Form fields with mobile responsive spacing */}
             <TextField
               fullWidth
@@ -154,12 +230,13 @@ function IdeaBoard() {
               size={isMobile ? "small" : "medium"}
             />
 
-            <FormControl fullWidth sx={{ mb: 2 }}>
+            <FormControl fullWidth sx={{ mb: 2 }} required>
               <InputLabel>หมวดหมู่</InputLabel>
               <Select
                 value={newIdea.category}
                 label="หมวดหมู่"
                 onChange={(e) => setNewIdea({ ...newIdea, category: e.target.value })}
+                error={!newIdea.category && newIdea.title.length > 0}
               >
                 {CATEGORIES.map((cat) => (
                   <MenuItem key={cat.id} value={cat.id}>{cat.label}</MenuItem>
@@ -201,16 +278,17 @@ function IdeaBoard() {
 
             <Button 
               variant="contained" 
-              type="submit"
+              type={isEditing ? "button" : "submit"}
+              onClick={isEditing ? handleUpdate : undefined}
               fullWidth={isMobile}
               sx={{ 
-                bgcolor: '#FF6B6B',
-                '&:hover': { bgcolor: '#FF5252' },
+                bgcolor: isEditing ? '#4CAF50' : '#FF6B6B',
+                '&:hover': { bgcolor: isEditing ? '#45a049' : '#FF5252' },
                 borderRadius: '20px',
                 py: 1.5
               }}
             >
-              แชร์ไอเดีย
+              {isEditing ? 'อัพเดทไอเดีย' : 'แชร์ไอเดีย'}
             </Button>
           </form>
         </CardContent>
@@ -309,6 +387,24 @@ function IdeaBoard() {
               </Box>
             </DialogContent>
             <DialogActions>
+              {selectedIdea?.userId === auth.currentUser?.uid && (
+                <>
+                  <Button 
+                    startIcon={<EditIcon />}
+                    onClick={() => handleEdit(selectedIdea)}
+                    color="primary"
+                  >
+                    แก้ไข
+                  </Button>
+                  <Button 
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDelete(selectedIdea.id)}
+                    color="error"
+                  >
+                    ลบ
+                  </Button>
+                </>
+              )}
               <Button onClick={() => setOpenDialog(false)}>ปิด</Button>
             </DialogActions>
           </>
