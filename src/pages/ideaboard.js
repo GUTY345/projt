@@ -28,6 +28,9 @@ const CATEGORIES = [
 function IdeaBoard() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Add these two new state variables
+  const [openProfileDialog, setOpenProfileDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [ideas, setIdeas] = useState([]);
   const [newIdea, setNewIdea] = useState({
     title: '',
@@ -177,6 +180,7 @@ function IdeaBoard() {
         ...newIdea,
         userId: auth.currentUser.uid,
         userEmail: auth.currentUser.email,
+        userName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], // Add username
         userPhoto: auth.currentUser.photoURL,
         createdAt: new Date(),
         likes: 0,
@@ -334,8 +338,24 @@ function IdeaBoard() {
     }
   };
 
+  // Add near the top of the component
+  const handleProfileClick = async (userId, userEmail, userPhoto, e) => {
+    if (e) e.stopPropagation();
+    setSelectedUser({ id: userId, email: userEmail, photo: userPhoto });
+    setOpenProfileDialog(true);
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: isMobile ? 2 : 4, px: isMobile ? 1 : 2 }}>
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        py: isMobile ? 2 : 4, 
+        px: isMobile ? 1 : 2,
+        bgcolor: '#FFFFFF',
+        minHeight: '100vh',
+        background: 'linear-gradient(145deg, #f6f8fb 0%, #e9edf5 100%)'
+      }}
+    >
       <Typography
         variant={isMobile ? "h5" : "h4"}
         gutterBottom
@@ -343,12 +363,21 @@ function IdeaBoard() {
           color: '#2C3E50',
           fontWeight: 'bold',
           mb: isMobile ? 2 : 3,
+          textAlign: 'center',
+          fontSize: isMobile ? '1.5rem' : '2rem'
         }}
       >
         แชร์ไอเดียของคุณ
       </Typography>
 
-      <Card sx={{ mb: isMobile ? 2 : 4, borderRadius: 2, boxShadow: 3 }}>
+      <Card 
+        sx={{ 
+          mb: isMobile ? 2 : 4, 
+          borderRadius: 4,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(145deg, #ffffff, #f5f5f5)'
+        }}
+      >
         <CardContent sx={{ p: isMobile ? 2 : 3 }}>
           <form onSubmit={isEditing ? handleUpdate : handleSubmit}>
             <TextField
@@ -432,6 +461,7 @@ function IdeaBoard() {
         <Grid container spacing={isMobile ? 1.5 : 3}>
           {ideas.map((idea) => (
             <Grid item xs={12} sm={6} md={4} key={idea.id}>
+              
               <Card
                 sx={{
                   height: '100%',
@@ -441,17 +471,41 @@ function IdeaBoard() {
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: 4,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                   },
-                  borderRadius: isMobile ? 1 : 2,
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
                 }}
                 onClick={() => handleIdeaClick(idea)}
               >
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar src={idea.userPhoto} sx={{ mr: 1 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {idea.userEmail}
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mb: 2,
+                      cursor: 'pointer' 
+                    }}
+                    onClick={(e) => handleProfileClick(idea.userId, idea.userEmail, idea.userPhoto, e)}
+                  >
+                    <Avatar src={idea.userPhoto} sx={{ 
+                      mr: 1,
+                      width: 40,
+                      height: 40,
+                      border: '2px solid #fff',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }} />
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: 'primary.main',
+                        fontWeight: 500,
+                        '&:hover': { textDecoration: 'underline' }
+                      }}
+                    >
+                      {idea.userName || idea.userEmail.split('@')[0]}
                     </Typography>
                   </Box>
                   <Typography variant="h6" gutterBottom>{idea.title}</Typography>
@@ -710,6 +764,138 @@ function IdeaBoard() {
                 </>
               )}
               <Button onClick={() => setOpenDialog(false)}>ปิด</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      <Dialog
+        open={openProfileDialog}
+        onClose={() => setOpenProfileDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        {selectedUser && (
+          <>
+            <DialogTitle>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar
+                  src={selectedUser.photo}
+                  sx={{ width: 64, height: 64 }}
+                />
+                <Box>
+                  <Typography variant="h6">{selectedUser.email}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    โปรไฟล์ผู้ใช้
+                  </Typography>
+                </Box>
+              </Box>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Box sx={{ py: 2 }}>
+                {/* Add user stats section */}
+                <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    สถิติการแชร์ไอเดีย
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                      <Typography variant="h6" color="primary">
+                        {ideas.filter(idea => idea.userId === selectedUser.id).length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        ไอเดียทั้งหมุด
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="h6" color="primary">
+                        {ideas
+                          .filter(idea => idea.userId === selectedUser.id)
+                          .reduce((total, idea) => total + (idea.likes || 0), 0)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        ถูกใจทั้งหมุด
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="h6" color="primary">
+                        {ideas
+                          .filter(idea => idea.userId === selectedUser.id)
+                          .reduce((total, idea) => total + (idea.comments?.length || 0), 0)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        ความคิดเห็น
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Add favorite tags section */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    แท็กที่ใช้บ่อย
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {Array.from(
+                      new Set(
+                        ideas
+                          .filter(idea => idea.userId === selectedUser.id)
+                          .flatMap(idea => idea.tags || [])
+                      )
+                    ).map((tag, index) => (
+                      <Chip
+                        key={index}
+                        label={tag}
+                        size="small"
+                        sx={{
+                          bgcolor: 'primary.light',
+                          color: 'white',
+                          '&:hover': { bgcolor: 'primary.main' }
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+
+                <Typography variant="h6" gutterBottom>
+                  ไอเดียล่าสุด
+                </Typography>
+                <Grid container spacing={2}>
+                  {ideas
+                    .filter(idea => idea.userId === selectedUser.id)
+                    .map(idea => (
+                      <Grid item xs={12} key={idea.id}>
+                        <Card 
+                          sx={{ 
+                            p: 2,
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
+                          }}
+                          onClick={() => {
+                            handleIdeaClick(idea);
+                            setOpenProfileDialog(false);
+                          }}
+                        >
+                          <Typography variant="subtitle1" gutterBottom>
+                            {idea.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {idea.description.substring(0, 100)}...
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                            <ThumbUpIcon fontSize="small" color="action" />
+                            <Typography variant="caption">{idea.likes || 0}</Typography>
+                            <CommentIcon fontSize="small" color="action" sx={{ ml: 1 }} />
+                            <Typography variant="caption">{idea.comments?.length || 0}</Typography>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    ))}
+                </Grid>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenProfileDialog(false)}>Close</Button>
             </DialogActions>
           </>
         )}

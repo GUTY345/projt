@@ -10,6 +10,7 @@ import { db, auth } from '../firebase/config';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import { blueGrey, teal } from '@mui/material/colors';
 
 function Notes() {
   const theme = useTheme();
@@ -120,27 +121,31 @@ function Notes() {
 
   return (
     <Container maxWidth="lg" sx={{ 
-      py: isMobile ? 2 : 4,
-      px: isMobile ? 1 : 2
+      py: isMobile ? 1 : 4,
+      px: isMobile ? 1 : 2,
+      bgcolor: blueGrey[50],
+      minHeight: '100vh'
     }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
         mb: isMobile ? 2 : 4,
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 2 : 0
+        flexDirection: 'column',
+        gap: 2
       }}>
         <Typography 
-          variant={isMobile ? "h5" : "h4"} 
+          variant="h5"
           sx={{ 
-            color: '#2C3E50', 
-            fontWeight: 'bold',
+            color: blueGrey[800], 
+            fontWeight: 700,
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            width: '100%',
+            justifyContent: 'center'
           }}
         >
-          <NoteAddIcon sx={{ mr: 1, fontSize: isMobile ? 24 : 32 }} />
+          <NoteAddIcon sx={{ mr: 1, fontSize: 28 }} />
           โน้ตของฉัน
         </Typography>
         <Button
@@ -151,11 +156,12 @@ function Notes() {
             setOpenDialog(true);
           }}
           sx={{
-            bgcolor: '#96CEB4',
-            '&:hover': { bgcolor: '#7AB39C' },
-            width: isMobile ? '100%' : 'auto',
-            borderRadius: '20px',
-            py: 1.5
+            bgcolor: teal[400],
+            '&:hover': { bgcolor: teal[500] },
+            width: '100%',
+            borderRadius: '12px',
+            py: 1.5,
+            boxShadow: 2
           }}
         >
           สร้างโน้ตใหม่
@@ -164,92 +170,101 @@ function Notes() {
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
+          <CircularProgress sx={{ color: teal[400] }} />
         </Box>
       ) : (
-        <Grid container spacing={isMobile ? 2 : 3}>
+        <Grid container spacing={2}>
           {notes.map((note) => (
-            <Grid item xs={12} sm={6} md={4} key={note.id}>
+            <Grid item xs={12} key={note.id}>
               <Fade in timeout={500}>
                 <Card 
                   sx={{ 
                     height: '100%',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4
+                    transition: 'all 0.2s ease',
+                    '&:active': {
+                      transform: 'scale(0.98)',
                     },
-                    borderRadius: 2
+                    borderRadius: 3,
+                    boxShadow: 2,
+                    bgcolor: 'white'
                   }}
                 >
-                  <CardContent>
+                  <CardContent sx={{ p: 2.5 }}>
                     <Box sx={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
-                      mb: 2,
-                      alignItems: 'flex-start'
+                      mb: 1.5,
+                      alignItems: 'center'
                     }}>
                       <Typography 
                         variant="h6"
                         sx={{ 
-                          fontSize: isMobile ? '1.1rem' : '1.25rem',
-                          wordBreak: 'break-word',
-                          pr: 1
+                          fontSize: '1.1rem',
+                          fontWeight: 600,
+                          color: blueGrey[800]
                         }}
                       >
                         {note.title}
                       </Typography>
-                      <Box>
-                        <Tooltip title="แก้ไข">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEdit(note)}
-                            sx={{ 
-                              color: '#96CEB4',
-                              '&:hover': { bgcolor: 'rgba(150, 206, 180, 0.1)' }
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="ลบ">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleDelete(note.id)}
-                            sx={{ 
-                              color: '#FF6B6B',
-                              '&:hover': { bgcolor: 'rgba(255, 107, 107, 0.1)' }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleEdit(note)}
+                          sx={{ 
+                            color: teal[400],
+                            p: 1
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDelete(note.id)}
+                          sx={{ 
+                            color: '#FF6B6B',
+                            p: 1
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                       </Box>
                     </Box>
                     <Typography 
                       variant="body2" 
-                      color="text.secondary"
                       sx={{ 
                         mb: 2,
-                        minHeight: '60px',
-                        maxHeight: '120px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
+                        color: blueGrey[600],
+                        lineHeight: 1.6,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
                       }}
                     >
                       {note.content}
                     </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
                       {note.tags?.map((tag, index) => (
                         <Chip
                           key={index}
                           label={tag}
                           size="small"
-                          sx={{ bgcolor: '#96CEB4', color: 'white' }}
+                          sx={{ 
+                            bgcolor: teal[50],
+                            color: teal[700],
+                            fontSize: '0.75rem'
+                          }}
                         />
                       ))}
                     </Box>
-                    <Typography variant="caption" display="block" sx={{ mt: 2 }}>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        mt: 2,
+                        display: 'block',
+                        color: blueGrey[400]
+                      }}
+                    >
                       โดย {note.userName}
                     </Typography>
                   </CardContent>
@@ -263,14 +278,16 @@ function Notes() {
       <Dialog 
         open={openDialog} 
         onClose={() => setOpenDialog(false)}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isMobile}
+        fullScreen={true}
+        TransitionComponent={Fade}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ 
+          bgcolor: teal[50],
+          py: 2
+        }}>
           {editingNote ? 'แก้ไขโน้ต' : 'สร้างโน้ตใหม่'}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: 2 }}>
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
@@ -329,14 +346,19 @@ function Notes() {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: 2 }}
       >
         <Alert 
           onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            boxShadow: 3,
+            borderRadius: 2
+          }}
         >
           {snackbar.message}
         </Alert>

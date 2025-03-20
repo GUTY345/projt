@@ -110,7 +110,7 @@ function App() {
                 <Route path="/chat" element={<Chat />} />
                 <Route path="/moodboard" element={<MoodBoard />} />
                 <Route path="/notes" element={<Notes />} />
-                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:userId?" element={<Profile />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </Suspense>

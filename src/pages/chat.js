@@ -17,7 +17,7 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import { collection, query, orderBy, limit, addDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, formatDate, isSameDay } from 'date-fns';
 import { th } from 'date-fns/locale';
 import AddIcon from '@mui/icons-material/Add';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -159,9 +159,10 @@ function Chat() {
             width: 280,
             display: { xs: selectedGroup ? 'none' : 'flex', md: 'flex' },
             flexDirection: 'column',
-            borderRadius: isMobile ? 0 : '4px 0 0 4px',
+            borderRadius: isMobile ? 0 : '12px 0 0 12px',
             borderRight: 1,
-            borderColor: 'divider'
+            borderColor: 'divider',
+            bgcolor: 'background.paper'
           }}
         >
           <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -196,15 +197,19 @@ function Chat() {
                   p: 2,
                   mb: 1,
                   cursor: 'pointer',
+                  borderRadius: 2,
+                  transition: 'all 0.2s',
                   bgcolor: selectedGroup?.id === group.id ? 'action.selected' : 'background.paper',
                   '&:hover': {
-                    bgcolor: 'action.hover'
+                    bgcolor: 'action.hover',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1
                   }
                 }}
               >
-                <Typography variant="subtitle2">{group.name}</Typography>
+                <Typography variant="subtitle2" fontWeight={600}>{group.name}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธารณะ'}
+                  {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
                 </Typography>
               </Paper>
             ))}
@@ -212,7 +217,15 @@ function Chat() {
         </Paper>
       
         {/* Chat Area */}
-        <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Paper 
+          sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            borderRadius: isMobile ? 0 : '0 12px 12px 0',
+            overflow: 'hidden'
+          }}
+        >
           <Box sx={{ 
             p: 2, 
             bgcolor: 'primary.main', 
@@ -265,82 +278,26 @@ function Chat() {
             )}
           </Box>
       
-          <Box sx={{ flex: 1, overflow: 'auto', p: 2, bgcolor: '#f5f5f5' }}>
+          <Box 
+            sx={{ 
+              flex: 1, 
+              overflow: 'auto', 
+              p: 2, 
+              bgcolor: '#f8f9fa',
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)',
+              backgroundSize: '100% 48px'
+            }}
+          >
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <CircularProgress />
+                <CircularProgress size={32} />
               </Box>
             ) : (
-              messages.map((message) => {
-                const isCurrentUser = message.userId === auth.currentUser?.uid;
-                return (
-                  <Box
-                    key={message.id}
-                    sx={{
-                      display: 'flex',
-                      flexDirection: isCurrentUser ? 'row-reverse' : 'row',
-                      alignItems: 'flex-start',
-                      gap: 1
-                    }}
-                  >
-                    <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
-                      <Avatar 
-                        src={message.userPhoto} 
-                        sx={{ 
-                          width: isMobile ? 32 : 40, 
-                          height: isMobile ? 32 : 40,
-                          boxShadow: 1
-                        }} 
-                      />
-                    </Tooltip>
-                    <Box
-                      sx={{
-                        maxWidth: isMobile ? '75%' : '70%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: isCurrentUser ? 'flex-end' : 'flex-start'
-                      }}
-                    >
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        sx={{ mb: 0.5, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
-                      >
-                        {message.userName}
-                      </Typography>
-                      <Paper
-                        elevation={1}
-                        sx={{
-                          p: 1.5,
-                          bgcolor: isCurrentUser ? 'primary.main' : 'white',
-                          color: isCurrentUser ? 'white' : 'inherit',
-                          borderRadius: 2,
-                          maxWidth: '100%',
-                          wordBreak: 'break-word'
-                        }}
-                      >
-                        <Typography sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }}>
-                          {message.text}
-                        </Typography>
-                      </Paper>
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        sx={{ mt: 0.5, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
-                      >
-                        {formatDistanceToNow(message.createdAt.toDate(), { 
-                          addSuffix: true,
-                          locale: th 
-                        })}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })
+              messages.map((message, index) => renderMessageGroup(messages, index))
             )}
             <div ref={messagesEndRef} />
           </Box>
-      
+
           {selectedGroup && (
             <Box 
               component="form" 
@@ -360,23 +317,32 @@ function Chat() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 variant="outlined"
-                size={isMobile ? "small" : "medium"}
+                size="medium"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    bgcolor: '#f5f5f5'
+                    bgcolor: '#f8f9fa',
+                    '&:hover': {
+                      bgcolor: '#fff'
+                    },
+                    '&.Mui-focused': {
+                      bgcolor: '#fff'
+                    }
                   }
                 }}
               />
               <IconButton 
                 type="submit" 
-                color="primary"
                 disabled={!newMessage.trim()}
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
+                  width: 48,
+                  height: 48,
+                  transition: 'all 0.2s',
                   '&:hover': {
-                    bgcolor: 'primary.dark'
+                    bgcolor: 'primary.dark',
+                    transform: 'scale(1.05)'
                   },
                   '&.Mui-disabled': {
                     bgcolor: 'action.disabledBackground',
@@ -405,3 +371,101 @@ function Chat() {
 }
 
 export default Chat;
+
+function renderMessageGroup(messages, index) {
+  const message = messages[index];
+  const prevMessage = index > 0 ? messages[index - 1] : null;
+  const showDateHeader = !prevMessage || 
+    !isSameDay(message.createdAt.toDate(), prevMessage.createdAt.toDate());
+  const isCurrentUser = message.userId === auth.currentUser?.uid;
+
+  return (
+    <Box key={message.id}>
+      {showDateHeader && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          my: 2,
+          position: 'relative'
+        }}>
+          <Typography
+            variant="caption"
+            sx={{
+              px: 2,
+              py: 0.5,
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
+              borderRadius: 5,
+              color: 'text.secondary'
+            }}
+          >
+            {formatDate(message.createdAt.toDate(), 'EEEE, MMMM d', { locale: th })}
+          </Typography>
+        </Box>
+      )}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: isCurrentUser ? 'row-reverse' : 'row',
+          alignItems: 'flex-end',
+          gap: 1,
+          mb: 1
+        }}
+      >
+        <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
+          <Avatar 
+            src={message.userPhoto} 
+            sx={{ 
+              width: 32, 
+              height: 32,
+              opacity: 0.9,
+              transition: 'opacity 0.2s',
+              '&:hover': {
+                opacity: 1
+              }
+            }} 
+          />
+        </Tooltip>
+        <Box
+          sx={{
+            maxWidth: '70%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: isCurrentUser ? 'flex-end' : 'flex-start'
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              bgcolor: isCurrentUser ? 'primary.main' : 'background.paper',
+              color: isCurrentUser ? 'white' : 'inherit',
+              borderRadius: 2,
+              maxWidth: '100%',
+              wordBreak: 'break-word',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              position: 'relative'
+            }}
+          >
+            <Typography sx={{ fontSize: '0.95rem' }}>
+              {message.text}
+            </Typography>
+          </Paper>
+          <Typography 
+            variant="caption" 
+            color="text.secondary"
+            sx={{ 
+              mt: 0.5,
+              fontSize: '0.7rem',
+              opacity: 0.8
+            }}
+          >
+            {formatDistanceToNow(message.createdAt.toDate(), { 
+              addSuffix: true,
+              locale: th 
+            })}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
