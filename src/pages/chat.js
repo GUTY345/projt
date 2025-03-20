@@ -132,6 +132,14 @@ function Chat() {
     if (window.confirm('คุณแน่ใจหรือไม่ที่จะออกจากกลุ่มนี้?')) {
       try {
         const groupRef = doc(db, 'chatGroups', groupId);
+        
+        // Add system message about leaving
+        await addDoc(collection(db, `chatGroups/${groupId}/messages`), {
+          text: `${auth.currentUser.displayName || 'ผู้ใช้'} ได้ออกจากกลุ่ม`,
+          createdAt: new Date(),
+          isSystemMessage: true
+        });
+
         await updateDoc(groupRef, {
           members: arrayRemove(auth.currentUser.uid)
         });
@@ -378,6 +386,7 @@ function renderMessageGroup(messages, index) {
   const showDateHeader = !prevMessage || 
     !isSameDay(message.createdAt.toDate(), prevMessage.createdAt.toDate());
   const isCurrentUser = message.userId === auth.currentUser?.uid;
+  const isSystemMessage = message.isSystemMessage;
 
   return (
     <Box key={message.id}>
@@ -402,69 +411,93 @@ function renderMessageGroup(messages, index) {
           </Typography>
         </Box>
       )}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: isCurrentUser ? 'row-reverse' : 'row',
-          alignItems: 'flex-end',
-          gap: 1,
-          mb: 1
-        }}
-      >
-        <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
-          <Avatar 
-            src={message.userPhoto} 
-            sx={{ 
-              width: 32, 
-              height: 32,
-              opacity: 0.9,
-              transition: 'opacity 0.2s',
-              '&:hover': {
-                opacity: 1
-              }
-            }} 
-          />
-        </Tooltip>
-        <Box
-          sx={{
-            maxWidth: '70%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: isCurrentUser ? 'flex-end' : 'flex-start'
-          }}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1.5,
-              bgcolor: isCurrentUser ? 'primary.main' : 'background.paper',
-              color: isCurrentUser ? 'white' : 'inherit',
-              borderRadius: 2,
-              maxWidth: '100%',
-              wordBreak: 'break-word',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-              position: 'relative'
-            }}
-          >
-            <Typography sx={{ fontSize: '0.95rem' }}>
+      <Box>
+        {isSystemMessage ? (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            my: 1 
+          }}>
+            <Typography
+              variant="caption"
+              sx={{
+                px: 2,
+                py: 0.5,
+                bgcolor: 'rgba(0, 0, 0, 0.04)',
+                borderRadius: 5,
+                color: 'text.secondary',
+                fontStyle: 'italic'
+              }}
+            >
               {message.text}
             </Typography>
-          </Paper>
-          <Typography 
-            variant="caption" 
-            color="text.secondary"
-            sx={{ 
-              mt: 0.5,
-              fontSize: '0.7rem',
-              opacity: 0.8
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: isCurrentUser ? 'row-reverse' : 'row',
+              alignItems: 'flex-end',
+              gap: 1,
+              mb: 1
             }}
           >
-            {formatDistanceToNow(message.createdAt.toDate(), { 
-              addSuffix: true,
-              locale: th 
-            })}
-          </Typography>
-        </Box>
+            <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
+              <Avatar 
+                src={message.userPhoto} 
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  opacity: 0.9,
+                  transition: 'opacity 0.2s',
+                  '&:hover': {
+                    opacity: 1
+                  }
+                }} 
+              />
+            </Tooltip>
+            <Box
+              sx={{
+                maxWidth: '70%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: isCurrentUser ? 'flex-end' : 'flex-start'
+              }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  bgcolor: isCurrentUser ? 'primary.main' : 'background.paper',
+                  color: isCurrentUser ? 'white' : 'inherit',
+                  borderRadius: 2,
+                  maxWidth: '100%',
+                  wordBreak: 'break-word',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  position: 'relative'
+                }}
+              >
+                <Typography sx={{ fontSize: '0.95rem' }}>
+                  {message.text}
+                </Typography>
+              </Paper>
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ 
+                  mt: 0.5,
+                  fontSize: '0.7rem',
+                  opacity: 0.8
+                }}
+              >
+                {formatDistanceToNow(message.createdAt.toDate(), { 
+                  addSuffix: true,
+                  locale: th 
+                })}
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

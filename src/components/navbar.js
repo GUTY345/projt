@@ -1,7 +1,7 @@
 import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar, useTheme, useMediaQuery, Drawer, List, ListItem, ListItemText } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '../firebase/config';
 import { Badge, Popover } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -61,6 +61,41 @@ function Navbar({ user }) {
     </List>
   );
 
+  const [notifications, setNotifications] = useState([]);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      // Query for notifications
+      const notificationsRef = collection(db, 'notifications');
+      const q = query(
+        notificationsRef,
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const newNotifications = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setNotifications(newNotifications);
+        setUnreadCount(newNotifications.filter(n => !n.read).length);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  const handleNotificationClick = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationClose = () => {
+    setNotificationAnchorEl(null);
+  };
+
   return (
     <AppBar position="static" sx={{ bgcolor: '#FF6B6B' }}>
       <Toolbar>
@@ -108,7 +143,17 @@ function Navbar({ user }) {
         )}
 
         {user && (
-          <Box sx={{ ml: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton 
+              color="inherit" 
+              onClick={handleNotificationClick}
+              sx={{ mr: 2 }}
+            >
+              <Badge badgeContent={unreadCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+
             <IconButton onClick={handleMenu}>
               <Avatar 
                 src={user.photoURL} 
@@ -141,6 +186,59 @@ function Navbar({ user }) {
                 ออกจากระบบ
               </MenuItem>
             </Menu>
+
+            <Popover
+              open={Boolean(notificationAnchorEl)}
+              anchorEl={notificationAnchorEl}
+              onClose={handleNotificationClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              PaperProps={{
+                sx: {
+                  width: 300,
+                  maxHeight: 400,
+                  p: 2
+                }
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 2 }}>การแจ้งเตือน</Typography>
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <Box
+                    key={notification.id}
+                    sx={{
+                      p: 1,
+                      mb: 1,
+                      bgcolor: notification.read ? 'transparent' : '#f5f5f5',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: '#eee' }
+                    }}
+                    onClick={() => {
+                      handleNotificationClose();
+                      navigate(notification.link);
+                    }}
+                  >
+                    <Typography variant="body2">
+                      {notification.message}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {notification.type === 'post' ? '🔔 โพสต์ใหม่' : '💬 ข้อความใหม่'}
+                    </Typography>
+                  </Box>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                  ไม่มีการแจ้งเตือนใหม่
+                </Typography>
+              )}
+            </Popover>
           </Box>
         )}
       </Toolbar>
@@ -151,7 +249,7 @@ function Navbar({ user }) {
         open={mobileOpen}
         onClose={handleDrawerToggle}
         ModalProps={{
-          keepMounted: true // Better mobile performance
+          keepMounted: true
         }}
         sx={{
           display: { xs: 'block', sm: 'none' },
@@ -165,7 +263,7 @@ function Navbar({ user }) {
         {drawer}
       </Drawer>
     </AppBar>
-  );
+);
 }
 
 export default Navbar;

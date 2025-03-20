@@ -8,7 +8,7 @@ import {
   Button,
   Box
 } from '@mui/material';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 
 function JoinGroupDialog({ open, onClose }) {
@@ -29,8 +29,17 @@ function JoinGroupDialog({ open, onClose }) {
       }
 
       const groupDoc = snapshot.docs[0];
-      await updateDoc(doc(db, 'chatGroups', groupDoc.id), {
+      const groupId = groupDoc.id;  // Get the group ID here
+      
+      await updateDoc(doc(db, 'chatGroups', groupId), {
         members: [...groupDoc.data().members, auth.currentUser.uid]
+      });
+      
+      // Add system message about joining
+      await addDoc(collection(db, `chatGroups/${groupId}/messages`), {
+        text: `${auth.currentUser.displayName || 'ผู้ใช้'} ได้เข้าร่วมกลุ่ม`,
+        createdAt: new Date(),
+        isSystemMessage: true
       });
       
       onClose();
