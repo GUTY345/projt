@@ -804,7 +804,7 @@ function IdeaBoard() {
                         {ideas.filter(idea => idea.userId === selectedUser.id).length}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        ไอเดียทั้งหมุด
+                        ไอเดียทั้งหมด
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
@@ -814,7 +814,7 @@ function IdeaBoard() {
                           .reduce((total, idea) => total + (idea.likes || 0), 0)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        ถูกใจทั้งหมุด
+                        ถูกใจทั้งหมด
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
