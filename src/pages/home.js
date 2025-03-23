@@ -51,13 +51,13 @@ function Home() {
       bgcolor: '#FFFFFF',
       display: 'flex',
       flexDirection: 'column',
-      pb: isMobile ? 8 : 0,
-      mt: isMobile ? '56px' : 0
+      pb: isMobile ? '72px' : 0, // เพิ่ม padding bottom สำหรับ bottom nav
+      mt: isMobile ? '64px' : 0  // ปรับ margin top ให้พอดีกับ navbar
     }}>
       <Box sx={{
         background: 'linear-gradient(135deg, #4A90E2 0%, #67B26F 100%)',
-        pt: isMobile ? 4 : 10,
-        pb: isMobile ? 4 : 12,
+        pt: isMobile ? 3 : 10,   // ลด padding top บนมือถือ
+        pb: isMobile ? 3 : 12,   // ลด padding bottom บนมือถือ
         px: isMobile ? 2 : 4,
         color: 'white',
         textAlign: 'center',
@@ -89,11 +89,11 @@ function Home() {
 
       <Container maxWidth="lg" sx={{ 
         flex: 1,
-        py: isMobile ? 2 : 3,
+        py: isMobile ? 1.5 : 3,  // ลด padding บนมือถือ
         px: isMobile ? 1 : 3,
-        mt: isMobile ? -2 : -4
+        mt: isMobile ? -1 : -4   // ปรับ overlap น้อยลงบนมือถือ
       }}>
-        <Grid container spacing={isMobile ? 1.5 : 2}>
+        <Grid container spacing={isMobile ? 1 : 2}>  {/* ลด spacing ระหว่าง cards */}
           {features.map((feature) => (
             <Grid item xs={12} sm={6} md={3} key={feature.title}>
               <Card
@@ -101,21 +101,24 @@ function Home() {
                 sx={{
                   height: '100%',
                   bgcolor: 'white',
-                  borderRadius: isMobile ? 1.5 : 2,
+                  borderRadius: isMobile ? 1 : 2,
                   border: '1px solid rgba(0,0,0,0.08)',
                   boxShadow: 'none',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   '&:hover': {
                     bgcolor: 'rgba(0,0,0,0.02)',
-                    transform: isMobile ? 'none' : 'translateY(-4px)'
+                    transform: 'none'  // ปิด hover effect บนมือถือ
                   },
                   '&:active': {
                     transform: 'scale(0.98)'
                   }
                 }}
               >
-                <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <CardContent sx={{ 
+                  p: isMobile ? 1.25 : 2,  // ลด padding ของ card content
+                  '&:last-child': { pb: isMobile ? 1.25 : 2 }  // แก้ปัญหา padding bottom ไม่เท่ากัน
+                }}>
                   <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: isMobile ? 1.5 : 2 }}>
                     <Box sx={{
                       background: feature.gradient,

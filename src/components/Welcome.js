@@ -10,7 +10,7 @@ function Welcome() {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)',
+        background: 'linear-gradient(135deg, #4A90E2 0%, #67B26F 100%)',  // ปรับ gradient ให้ตรงกับธีมหลัก
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -52,7 +52,7 @@ function Welcome() {
             onClick={() => navigate('/auth')}
             sx={{
               bgcolor: 'white',
-              color: '#FF6B6B',
+              color: '#4A90E2',  // ปรับสีตัวอักษรให้ตรงกับธีมหลัก
               px: 6,
               py: 1.5,
               fontSize: '1.2rem',
@@ -63,6 +63,7 @@ function Welcome() {
                 transform: 'translateY(-2px)',
                 boxShadow: '0 12px 20px rgba(0,0,0,0.15)',
               },
+              transition: 'all 0.2s ease',  // เพิ่ม transition ให้ smooth ขึ้น
             }}
           >
             เริ่มต้นใช้งาน

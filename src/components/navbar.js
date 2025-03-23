@@ -177,7 +177,8 @@ function Navbar({ user }) {
           background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-          top: 0
+          top: 0,
+          zIndex: 1200 // เพิ่ม zIndex
         }}
       >
         <Toolbar>
@@ -250,9 +251,12 @@ function Navbar({ user }) {
         </Toolbar>
       </AppBar>
       
-      {/* Add padding for fixed navbar */}
-      <Box sx={{ height: '64px' }} />
-
+      {/* ปรับ padding สำหรับ fixed navbar */}
+      <Box sx={{ 
+        height: { xs: '56px', sm: '64px' },
+        width: '100%'
+      }} />
+      
       {isMobile && user && (
         <AppBar 
           position="fixed" 
@@ -262,10 +266,15 @@ function Navbar({ user }) {
             bottom: 0,
             background: 'rgba(255, 255, 255, 0.95)',
             borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            zIndex: 1200
           }}
         >
-          <Toolbar sx={{ justifyContent: 'space-around', minHeight: '56px' }}>
+          <Toolbar sx={{ 
+            justifyContent: 'space-around', 
+            minHeight: '56px',
+            px: 1
+          }}>
             {menuItems.map((item) => (
               <IconButton
                 key={item.text}
@@ -276,11 +285,18 @@ function Navbar({ user }) {
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 0.5,
-                  padding: '8px'
+                  padding: '4px',
+                  minWidth: '48px'
                 }}
               >
                 {item.icon}
-                <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    fontSize: '0.65rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
                   {item.text}
                 </Typography>
               </IconButton>
@@ -288,9 +304,9 @@ function Navbar({ user }) {
           </Toolbar>
         </AppBar>
       )}
-
-      {/* Add padding to content */}
-      {isMobile && <Box sx={{ mb: '56px' }} />}
+      
+      {/* ปรับ padding สำหรับ bottom navigation */}
+      {isMobile && <Box sx={{ height: '56px', width: '100%' }} />}
       
       <Menu
         anchorEl={anchorEl}
