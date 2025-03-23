@@ -12,152 +12,139 @@ function Home() {
 
   const features = [
     {
-      title: 'แชร์ไอเดีย',
-      description: 'แบ่งปันไอเดียโปรเจกต์และงานกลุ่มกับเพื่อนๆ',
-      icon: <LightbulbIcon sx={{ fontSize: isMobile ? 24 : 26 }} />,
+      title: 'เชื่อมโยงไอเดีย',
+      description: 'แชร์และเชื่อมโยงความคิดสร้างสรรค์ร่วมกับทีมของคุณ สร้างแผนผังความคิดและจัดระเบียบไอเดียได้อย่างไร้ขีดจำกัด',
+      icon: <LightbulbIcon sx={{ fontSize: isMobile ? 28 : 32 }} />,
       path: '/ideas',
-      color: '#FF7B7B'
+      color: '#4A90E2',
+      gradient: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)'
     },
     {
       title: 'แชทกลุ่ม',
-      description: 'พูดคุยและระดมความคิดกับเพื่อนร่วมทีม',
-      icon: <ChatIcon sx={{ fontSize: isMobile ? 32 : 40 }} />,
+      description: 'สื่อสารและระดมความคิดแบบเรียลไทม์ แชร์ไฟล์และเอกสารได้อย่างรวดเร็ว พร้อมฟีเจอร์การแจ้งเตือนที่ครบครัน',
+      icon: <ChatIcon sx={{ fontSize: isMobile ? 28 : 32 }} />,
       path: '/chat',
-      color: '#4ECDC4'
+      color: '#67B26F',
+      gradient: 'linear-gradient(135deg, #67B26F 0%, #4CA2CD 100%)'
     },
     {
       title: 'มู้ดบอร์ด',
-      description: 'รวบรวมแรงบันดาลใจและไอเดียการออกแบบ',
-      icon: <ColorLensIcon sx={{ fontSize: isMobile ? 32 : 40 }} />,
+      description: 'รวบรวมแรงบันดาลใจและไอเดียการออกแบบในที่เดียว จัดเรียงและแชร์ได้ง่าย พร้อมระบบแท็กที่ช่วยจัดหมวดหมู่',
+      icon: <ColorLensIcon sx={{ fontSize: isMobile ? 28 : 32 }} />,
       path: '/moodboard',
-      color: '#45B7D1'
+      color: '#45B7D1',
+      gradient: 'linear-gradient(135deg, #45B7D1 0%, #2E94AB 100%)'
     },
     {
       title: 'ทำงานร่วมกัน',
-      description: 'แชร์โน้ตและทำงานร่วมกันแบบเรียลไทม์',
-      icon: <GroupIcon sx={{ fontSize: isMobile ? 32 : 40 }} />,
+      description: 'แชร์โน้ตและทำงานร่วมกันแบบเรียลไทม์ พร้อมระบบติดตามการเปลี่ยนแปลงและประวัติการแก้ไข',
+      icon: <GroupIcon sx={{ fontSize: isMobile ? 28 : 32 }} />,
       path: '/notes',
-      color: '#96CEB4'
+      color: '#96CEB4',
+      gradient: 'linear-gradient(135deg, #96CEB4 0%, #6BA890 100%)'
     }
   ];
 
   return (
     <Box sx={{ 
       minHeight: '100vh',
-      bgcolor: '#F2F2F7',
+      bgcolor: '#FFFFFF',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      pb: isMobile ? 8 : 0,
+      mt: isMobile ? '56px' : 0
     }}>
       <Box sx={{
-        bgcolor: '#FF7B7B',
-        pt: 8, // Increased top padding
-        pb: 4, // Increased bottom padding
-        px: 3,
+        background: 'linear-gradient(135deg, #4A90E2 0%, #67B26F 100%)',
+        pt: isMobile ? 4 : 10,
+        pb: isMobile ? 4 : 12,
+        px: isMobile ? 2 : 4,
         color: 'white',
-        textAlign: 'center'
+        textAlign: 'center',
+        position: 'relative'
       }}>
-        <Typography
-          variant="h4"
+        <Typography 
+          variant="h3" 
           sx={{
-            fontWeight: 600,
-            fontSize: isMobile ? '2rem' : '2.25rem',
-            mb: 2, // Increased margin
-            letterSpacing: '-0.5px'
+            fontWeight: 700,
+            fontSize: isMobile ? '1.75rem' : '3rem',
+            mb: 2,
+            letterSpacing: '-0.02em'
           }}
         >
-          StudyHub
+          MindMesh
         </Typography>
-        <Typography
+        <Typography 
           sx={{
-            fontSize: '1rem',
-            opacity: 0.95,
-            maxWidth: '500px',
+            fontSize: isMobile ? '0.95rem' : '1.25rem',
+            maxWidth: '600px',
             mx: 'auto',
-            px: 3,
-            fontWeight: 400,
-            lineHeight: 1.6
+            fontWeight: 500,
+            opacity: 0.95
           }}
         >
-          แพลตฟอร์มสำหรับการแชร์ไอเดีย ทำงานกลุ่ม และเรียนรู้ร่วมกัน
+          เชื่อมโยงความคิด สร้างสรรค์การเรียนรู้ร่วมกัน
         </Typography>
       </Box>
 
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
-          flex: 1,
-          py: 4, // Increased padding
-          px: isMobile ? 3 : 4
-        }}
-      >
-        <Grid container spacing={3}> {/* Increased grid spacing */}
+      <Container maxWidth="lg" sx={{ 
+        flex: 1,
+        py: isMobile ? 2 : 3,
+        px: isMobile ? 1 : 3,
+        mt: isMobile ? -2 : -4
+      }}>
+        <Grid container spacing={isMobile ? 1.5 : 2}>
           {features.map((feature) => (
-            <Grid item xs={6} sm={6} md={3} key={feature.title}>
+            <Grid item xs={12} sm={6} md={3} key={feature.title}>
               <Card
                 onClick={() => navigate(feature.path)}
                 sx={{
                   height: '100%',
                   bgcolor: 'white',
-                  borderRadius: 4, // Increased border radius
+                  borderRadius: isMobile ? 1.5 : 2,
+                  border: '1px solid rgba(0,0,0,0.08)',
                   boxShadow: 'none',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  border: '1px solid rgba(0,0,0,0.06)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0,0,0,0.02)',
+                    transform: isMobile ? 'none' : 'translateY(-4px)'
+                  },
                   '&:active': {
-                    transform: 'scale(0.98)',
-                    bgcolor: 'rgba(0,0,0,0.02)'
+                    transform: 'scale(0.98)'
                   }
                 }}
               >
-                <CardContent sx={{ 
-                  p: isMobile ? 2.5 : 3, // Increased padding
-                  '&:last-child': { pb: isMobile ? 2.5 : 3 }
-                }}>
-                  <Box
-                    sx={{
+                <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: isMobile ? 1.5 : 2 }}>
+                    <Box sx={{
+                      background: feature.gradient,
+                      borderRadius: isMobile ? 1 : 1.5,
+                      p: isMobile ? 1 : 1.5,
+                      color: 'white',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      textAlign: 'center',
-                      gap: 2 // Added gap between elements
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        bgcolor: feature.color,
-                        borderRadius: '20px', // Increased border radius
-                        p: 2,
-                        color: 'white',
-                        width: isMobile ? '52px' : '56px',
-                        height: isMobile ? '52px' : '56px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
                       {feature.icon}
                     </Box>
-                    <Typography 
-                      sx={{ 
-                        fontWeight: 600,
-                        fontSize: isMobile ? '1rem' : '1.1rem',
-                        color: '#000000',
-                        letterSpacing: '-0.3px',
-                        mb: 1
-                      }}
-                    >
-                      {feature.title}
-                    </Typography>
-                    <Typography 
-                      sx={{ 
-                        fontSize: isMobile ? '0.85rem' : '0.9rem',
+                    <Box>
+                      <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: '#1A1A1A', mb: 0.5 }}>
+                        {feature.title}
+                      </Typography>
+                      <Typography sx={{ 
+                        fontSize: '0.875rem',
                         lineHeight: 1.5,
                         color: '#666666',
-                        px: 1
-                      }}
-                    >
-                      {feature.description}
-                    </Typography>
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {feature.description}
+                      </Typography>
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>

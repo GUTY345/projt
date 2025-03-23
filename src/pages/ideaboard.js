@@ -16,13 +16,24 @@ import EditIcon from '@mui/icons-material/Edit';
 import { containsInappropriateContent } from '../utils/contentFilter';
 import { serverTimestamp, getDoc } from 'firebase/firestore';
 
+// Add these theme colors at the top of the file after imports
+const THEME_COLORS = {
+  primary: '#4A90E2',
+  secondary: '#50C878',
+  background: '#F5F7FA',
+  cardBg: '#FFFFFF',
+  text: '#2C3E50',
+  accent: '#FF6B6B'
+};
+
+// Update the CATEGORIES array with new colors
 const CATEGORIES = [
-  { id: 'project', label: 'โปรเจกต์', color: '#FF6B6B' },
-  { id: 'study', label: 'การเรียน', color: '#4ECDC4' },
-  { id: 'research', label: 'งานวิจัย', color: '#45B7D1' },
-  { id: 'presentation', label: 'งานนำเสนอ', color: '#96CEB4' },
-  { id: 'thesis', label: 'วิทยานิพนธ์', color: '#FFEEAD' },
-  { id: 'group-work', label: 'งานกลุ่ม', color: '#D4A5A5' }
+  { id: 'project', label: 'โปรเจกต์', color: '#4A90E2' },
+  { id: 'study', label: 'การเรียน', color: '#50C878' },
+  { id: 'research', label: 'งานวิจัย', color: '#9B59B6' },
+  { id: 'presentation', label: 'งานนำเสนอ', color: '#F1C40F' },
+  { id: 'thesis', label: 'วิทยานิพนธ์', color: '#E74C3C' },
+  { id: 'group-work', label: 'งานกลุ่ม', color: '#1ABC9C' }
 ];
 
 function IdeaBoard() {
@@ -497,21 +508,16 @@ function IdeaBoard() {
                       border: '2px solid #fff',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                     }} />
-                    <Box>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: 'primary.main',
-                          fontWeight: 500,
-                          '&:hover': { textDecoration: 'underline' }
-                        }}
-                      >
-                        {idea.userName || idea.userEmail.split('@')[0]}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {idea.createdAt ? new Date(idea.createdAt.toDate()).toLocaleString('th-TH') : 'ไม่ระบุเวลา'}
-                      </Typography>
-                    </Box>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: 'primary.main',
+                        fontWeight: 500,
+                        '&:hover': { textDecoration: 'underline' }
+                      }}
+                    >
+                      {idea.userName || idea.userEmail.split('@')[0]}
+                    </Typography>
                   </Box>
                   <Typography variant="h6" gutterBottom>{idea.title}</Typography>
                   <Chip

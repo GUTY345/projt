@@ -18,7 +18,8 @@ import { db, auth } from '../firebase/config';
 const INTEREST_TAGS = [
   'การเรียน', 'โปรเจกต์', 'วิจัย', 'งานกลุ่ม', 'การนำเสนอ',
   'เทคโนโลยี', 'วิทยาศาสตร์', 'ศิลปะ', 'ดนตรี', 'กีฬา',
-  'ภาษา', 'การตลาด', 'ธุรกิจ', 'การเงิน', 'การออกแบบ'
+  'ภาษา', 'การตลาด', 'ธุรกิจ', 'การเงิน', 'การออกแบบ',
+  'ความคิดสร้างสรรค์', 'นวัตกรรม', 'การแก้ปัญหา' // เพิ่มแท็กที่เกี่ยวข้องกับ MindMesh
 ];
 
 function WelcomeDialog({ open, onClose }) {
@@ -83,7 +84,7 @@ function WelcomeDialog({ open, onClose }) {
           fontWeight="bold"
           sx={{ color: theme.palette.primary.main }}
         >
-          ยินดีต้อนรับสู่ StudyHub!
+          ยินดีต้อนรับสู่ MindMesh!
         </Typography>
       </DialogTitle>
 
@@ -104,7 +105,7 @@ function WelcomeDialog({ open, onClose }) {
             fontSize: isMobile ? '0.9rem' : '1rem'
           }}
         >
-          เลือกหัวข้อที่คุณสนใจเพื่อให้เราแสดงเนื้อหาที่เหมาะกับคุณ
+          เลือกหัวข้อที่สนใจเพื่อเชื่อมโยงกับผู้ใช้ที่มีความสนใจเดียวกัน
         </Typography>
 
         <Box sx={{ 

@@ -15,6 +15,7 @@ import createAppTheme from './styles/theme';
 
 // Components
 import Navbar from './components/navbar';
+import Welcome from './components/Welcome'; // เปลี่ยนจาก welcome เป็น Welcome
 import Auth from './components/auth';
 import WelcomeDialog from './components/welcomedialog';
 import LoadingScreen from './components/loadingscreen';
@@ -120,11 +121,13 @@ function App() {
             />
           </>
         ) : (
+          // แก้จาก BrowserRouter เป็น Routes ธรรมดา
           <Routes>
-            <Route path="/" element={<Auth />} />
+            <Route path="/" element={<Welcome />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-        )}
+          )}
 
         <Snackbar
           open={snackbar.open}
