@@ -1,6 +1,6 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { 
   CssBaseline, 
   CircularProgress, 
@@ -10,7 +10,9 @@ import {
 } from '@mui/material';
 import { auth, db } from './firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import theme from './styles/theme';
+import { useAuth } from './contexts/AuthContext';
+
+// Remove duplicate theme imports
 import createAppTheme from './styles/theme';
 
 // Components
@@ -29,120 +31,91 @@ import Notes from './pages/Notes';
 import Profile from './pages/profile';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
   const [showWelcome, setShowWelcome] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
+  // Create theme based on dark mode
+  const appTheme = useMemo(() => createAppTheme(darkMode), [darkMode]);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      try {
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (!userDoc.exists()) {
-            await setDoc(doc(db, 'users', user.uid), {
-              displayName: user.displayName || 'ผู้ใช้ไม่ระบุชื่อ',
-              email: user.email,
-              photoURL: user.photoURL,
-              darkMode: false,
-              createdAt: new Date()
-            });
-            setShowWelcome(true);
-          } else {
-            setDarkMode(userDoc.data().darkMode);
-          }
-        }
-        setUser(user);
-      } catch (error) {
-        console.error('Error loading user data:', error);
-        setSnackbar({
-          open: true,
-          message: 'เกิดข้อผิดพลาดในการโหลดข้อมูล',
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleThemeToggle = async () => {
-    if (user) {
-      try {
-        await setDoc(doc(db, 'users', user.uid), { darkMode: !darkMode }, { merge: true });
-        setDarkMode(!darkMode);
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: 'ไม่สามารถเปลี่ยนธีมได้',
-          severity: 'error'
-        });
-      }
+    // Check if it's user's first visit
+    if (user && !localStorage.getItem('welcomeShown')) {
+      setShowWelcome(true);
+      localStorage.setItem('welcomeShown', 'true');
     }
+
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode, user]);
+
+  const handleThemeToggle = () => {
+    setDarkMode(prev => !prev);
   };
 
-  if (loading) {
-    return (
-      <ThemeProvider theme={theme(darkMode)}>
-        <CssBaseline />
-        <LoadingScreen />
-      </ThemeProvider>
-    );
-  }
-
   return (
-    <ThemeProvider theme={theme(darkMode)}>
+    <ThemeProvider theme={appTheme}>
       <CssBaseline />
       <Router>
-        {user ? (
-          <>
-            <Navbar 
-              user={user} 
-              darkMode={darkMode}
-              onThemeToggle={handleThemeToggle}
-            />
-            <Suspense fallback={<LoadingScreen />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/ideas" element={<IdeaBoard />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/moodboard" element={<MoodBoard />} />
-                <Route path="/notes" element={<Notes />} />
-                <Route path="/profile/:userId?" element={<Profile />} />
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </Suspense>
-            <WelcomeDialog 
-              open={showWelcome} 
-              onClose={() => setShowWelcome(false)} 
-            />
-          </>
-        ) : (
-          // แก้จาก BrowserRouter เป็น Routes ธรรมดา
-          <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+        <Box sx={{ 
+          minHeight: 'calc(var(--vh, 1vh) * 100)',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTapHighlightColor: 'transparent'
+        }}>
+          {user ? (
+            <>
+              <Navbar 
+                user={user} 
+                darkMode={darkMode}
+                onThemeToggle={handleThemeToggle}
+              />
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/ideas" element={<IdeaBoard />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/moodboard" element={<MoodBoard />} />
+                  <Route path="/notes" element={<Notes />} />
+                  <Route path="/profile/:userId?" element={<Profile />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </Suspense>
+              <WelcomeDialog 
+                open={showWelcome} 
+                onClose={() => setShowWelcome(false)} 
+              />
+            </>
+          ) : (
+            <Routes>
+              <Route path="/" element={<Welcome />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
           )}
 
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={() => setSnackbar({ ...snackbar, open: false })} 
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
           >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
+            <Alert 
+              onClose={() => setSnackbar({ ...snackbar, open: false })} 
+              severity={snackbar.severity}
+              sx={{ width: '100%' }}
+            >
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
+        </Box>
       </Router>
     </ThemeProvider>
   );

@@ -1,4 +1,4 @@
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar, useTheme, useMediaQuery, Drawer, List, ListItem, ListItemText } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar, useTheme, useMediaQuery, Drawer, List, ListItem, ListItemText, Dialog, DialogContent } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate, useLocation } from 'react-router-dom';  // รวม useLocation ไว้ที่นี่
 import { useState, useEffect } from 'react';
@@ -15,6 +15,8 @@ import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import ChatIcon from '@mui/icons-material/Chat';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import NotesIcon from '@mui/icons-material/Notes';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import { limit } from 'firebase/firestore';
 
 function Navbar({ user }) {
   const navigate = useNavigate();
@@ -28,7 +30,8 @@ function Navbar({ user }) {
     { text: 'หน้าแรก', path: '/', icon: <HomeIcon /> },
     { text: 'ไอเดีย', path: '/ideas', icon: <LightbulbIcon /> },
     { text: 'แชท', path: '/chat', icon: <ChatIcon /> },
-    { text: 'มู้ดบอร์ด', path: '/moodboard', icon: <ColorLensIcon /> },
+    // ปิดหน้า moodboard ชั่วคราว แต่ยังแสดงในเมนู
+    { text: 'มู้ดบอร์ด', path: '/moodboard-disabled', icon: <ColorLensIcon /> },
     { text: 'โน้ต', path: '/notes', icon: <NotesIcon /> }
   ];
 
@@ -42,6 +45,25 @@ function Navbar({ user }) {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  // เพิ่ม state สำหรับ modal แจ้งเตือน
+  const [openMoodboardAlert, setOpenMoodboardAlert] = useState(false);
+
+  // เพิ่มฟังก์ชันสำหรับจัดการการนำทางไปยังหน้าต่างๆ
+  // แก้ไขฟังก์ชัน handleNavigation ให้ทำงานถูกต้อง
+  const handleNavigation = (path) => {
+    if (path === '/moodboard-disabled') {
+      // แสดง modal แจ้งเตือนแทนการนำทางไปยังหน้า moodboard
+      setOpenMoodboardAlert(true);
+    } else {
+      navigate(path);
+    }
+    
+    // ปิด drawer ถ้าเปิดอยู่
+    if (mobileOpen) {
+      handleDrawerToggle();
+    }
   };
 
   const handleLogout = async () => {
@@ -62,12 +84,12 @@ function Navbar({ user }) {
           textAlign: 'center',
           mb: 3,
           fontWeight: 600,
-          background: 'linear-gradient(135deg, #4A90E2 0%, #67B26F 100%)',
+          background: 'linear-gradient(135deg, #009688 0%, #4DB6AC 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}
       >
-        MindMesh
+        NoteNova
       </Typography>
       <List>
         {menuItems.map((item) => (
@@ -83,14 +105,14 @@ function Navbar({ user }) {
               borderRadius: '0 25px 25px 0',
               mr: 2,
               '&:hover': {
-                bgcolor: 'rgba(74, 144, 226, 0.1)',
+                bgcolor: 'rgba(0, 150, 136, 0.1)',
               }
             }}
           >
             <Box
               sx={{
                 mr: 2,
-                color: '#4A90E2',
+                color: '#009688',
                 display: 'flex',
                 alignItems: 'center'
               }}
@@ -118,21 +140,25 @@ function Navbar({ user }) {
 
   useEffect(() => {
     if (user) {
-      // Query for notifications
+      // Query notifications for both chat messages and new posts
       const notificationsRef = collection(db, 'notifications');
       const q = query(
         notificationsRef,
         where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        where('type', 'in', ['chat', 'post']), // เพิ่มการกรองประเภทการแจ้งเตือน
+        where('read', '==', false),
+        orderBy('createdAt', 'desc'),
+        limit(10)
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const newNotifications = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()
         }));
         setNotifications(newNotifications);
-        setUnreadCount(newNotifications.filter(n => !n.read).length);
+        setUnreadCount(newNotifications.length);
       });
 
       return () => unsubscribe();
@@ -166,7 +192,25 @@ function Navbar({ user }) {
     setNotificationAnchorEl(null);
   };
 
-  // ลบฟังก์ชัน handleNotificationClick ที่ซ้ำออก
+  const handleMarkAllAsRead = async () => {
+    try {
+      // อัพเดททุกการแจ้งเตือนที่ยังไม่ได้อ่าน
+      const promises = notifications.map(notification => {
+        if (!notification.read) {
+          const notificationRef = doc(db, 'notifications', notification.id);
+          return updateDoc(notificationRef, { read: true });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(promises);
+      handleNotificationClose();
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
+
+  // ลบฟังก์ชัน handleNavigationClick ที่ซ้ำออก
 
   return (
     <>
@@ -174,86 +218,157 @@ function Navbar({ user }) {
         position="fixed" 
         elevation={0}
         sx={{ 
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+          background: 'rgba(255, 255, 255, 0.98)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           top: 0,
-          zIndex: 1200 // เพิ่ม zIndex
+          pt: { xs: 'env(safe-area-inset-top)', sm: 0 },  // Add padding for iOS safe area
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          height: { xs: 'calc(70px + env(safe-area-inset-top))', sm: 'auto' }  // Adjust height
         }}
       >
-        <Toolbar>
+        <Toolbar 
+          sx={{ 
+            justifyContent: 'space-between', 
+            px: { xs: 2, sm: 4 },
+            minHeight: { xs: '70px', sm: '64px' },
+            mt: { xs: 'env(safe-area-inset-top)', sm: 0 }  // Add margin for content
+          }}
+        >
           {isMobile ? (
             <>
               <Typography 
                 variant="h6" 
                 sx={{ 
                   flexGrow: 1,
-                  textAlign: 'center',
+                  textAlign: 'left',
                   fontWeight: 700,
-                  fontSize: '1.2rem',
-                  background: 'linear-gradient(135deg, #4A90E2 0%, #67B26F 100%)',
+                  fontSize: '1.3rem',
+                  letterSpacing: '-0.5px',
+                  background: 'linear-gradient(135deg, #009688 0%, #4DB6AC 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                MindMesh
+                NoteNova
               </Typography>
-              <IconButton 
-                onClick={(e) => handleNotificationClick(e)}
-                sx={{ 
-                  color: '#666',
-                }}
-              >
-                <Badge badgeContent={unreadCount} color="error">
-                  <NotificationsIcon />
-                </Badge>
-              </IconButton>
-              <IconButton 
-                onClick={handleMenu}
-                sx={{ ml: 1 }}
-              >
-                <Avatar 
-                  src={user.photoURL} 
-                  alt={user.displayName}
-                  sx={{ 
-                    width: 32,
-                    height: 32,
-                    border: '2px solid #4A90E2'
-                  }}
-                />
-              </IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconButton 
+                  onClick={(e) => handleNotificationClick(e)}
+                  sx={{ color: '#666' }}
+                >
+                  <Badge 
+                    badgeContent={unreadCount} 
+                    color="error"
+                    sx={{ '& .MuiBadge-badge': { fontSize: '0.7rem' } }}
+                  >
+                    <NotificationsIcon />
+                  </Badge>
+                </IconButton>
+                <IconButton onClick={handleMenu}>
+                  <Avatar 
+                    src={user.photoURL} 
+                    alt={user.displayName}
+                    sx={{ 
+                      width: 34,
+                      height: 34,
+                      border: '2px solid #009688',
+                      transition: 'transform 0.2s',
+                      '&:hover': {
+                        transform: 'scale(1.05)'
+                      }
+                    }}
+                  />
+                </IconButton>
+              </Box>
             </>
           ) : (
-            <Box sx={{ display: 'flex', gap: 1, flexGrow: 1 }}>
-              {menuItems.map((item) => (
-                <Button 
-                  key={item.text}
-                  onClick={() => navigate(item.path)}
-                  startIcon={item.icon}
-                  sx={{
-                    color: location.pathname === item.path ? '#4A90E2' : '#666',
-                    px: 2,
-                    py: 1,
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontSize: '0.95rem',
-                    fontWeight: 500,
-                    '&:hover': {
-                      backgroundColor: 'rgba(74, 144, 226, 0.08)'
-                    }
+            <>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700,
+                  fontSize: '1.4rem',
+                  letterSpacing: '-0.5px',
+                  background: 'linear-gradient(135deg, #009688 0%, #4DB6AC 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mr: 4
+                }}
+              >
+                NoteNova
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexGrow: 1 }}>
+                {menuItems.map((item) => (
+                  <Button 
+                    key={item.text}
+                    onClick={() => handleNavigation(item.path)}
+                    startIcon={item.icon}
+                    sx={{
+                      color: location.pathname === item.path ? '#009688' : '#666',
+                      px: 2.5,
+                      py: 1,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontSize: '0.95rem',
+                      fontWeight: 500,
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 150, 136, 0.08)',
+                        transform: 'translateY(-1px)'
+                      }
+                    }}
+                  >
+                    {item.text}
+                  </Button>
+                ))}
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2 }}>
+                <IconButton 
+                  onClick={(e) => handleNotificationClick(e)}
+                  sx={{ 
+                    color: '#666',
+                    '&:hover': { color: '#009688' }
                   }}
                 >
-                  {item.text}
-                </Button>
-              ))}
-            </Box>
+                  <Badge 
+                    badgeContent={unreadCount} 
+                    color="error"
+                    sx={{ '& .MuiBadge-badge': { fontSize: '0.75rem' } }}
+                  >
+                    <NotificationsIcon />
+                  </Badge>
+                </IconButton>
+                <IconButton 
+                  onClick={handleMenu}
+                  sx={{ 
+                    p: 0.5,
+                    '&:hover': { bgcolor: 'rgba(74, 144, 226, 0.08)' }
+                  }}
+                >
+                  <Avatar 
+                    src={user.photoURL} 
+                    alt={user.displayName}
+                    sx={{ 
+                      width: 38,
+                      height: 38,
+                      border: '2px solid #009688',
+                      transition: 'transform 0.2s',
+                      '&:hover': {
+                        transform: 'scale(1.05)'
+                      }
+                    }}
+                  />
+                </IconButton>
+              </Box>
+            </>
           )}
         </Toolbar>
       </AppBar>
       
-      {/* ปรับ padding สำหรับ fixed navbar */}
+      {/* Adjust spacing for taller navbar and iOS safe area */}
       <Box sx={{ 
-        height: { xs: '56px', sm: '64px' },
+        height: { xs: 'calc(70px + env(safe-area-inset-top))', sm: '64px' },
         width: '100%'
       }} />
       
@@ -278,9 +393,9 @@ function Navbar({ user }) {
             {menuItems.map((item) => (
               <IconButton
                 key={item.text}
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavigation(item.path)}
                 sx={{
-                  color: location.pathname === item.path ? '#4A90E2' : '#666',
+                  color: location.pathname === item.path ? '#009688' : '#666',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -350,35 +465,102 @@ function Navbar({ user }) {
           }
         }}
       >
-        <Typography variant="h6" sx={{ mb: 2 }}>การแจ้งเตือน</Typography>
+        
+        <Typography variant="h6" sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>การแจ้งเตือน</span>
+          {notifications.length > 0 && (
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'primary.main',
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+              onClick={() => handleMarkAllAsRead()}
+            >
+              อ่านทั้งหมด
+            </Typography>
+          )}
+        </Typography>
         {notifications.length > 0 ? (
           notifications.map((notification) => (
             <Box
               key={notification.id}
               sx={{
-                p: 1,
+                p: 1.5,
                 mb: 1,
-                bgcolor: notification.read ? 'transparent' : '#f5f5f5',
-                borderRadius: 1,
+                bgcolor: notification.read ? 'transparent' : 'rgba(74, 144, 226, 0.08)',
+                borderRadius: 2,
                 cursor: 'pointer',
-                '&:hover': { bgcolor: '#eee' }
+                '&:hover': { bgcolor: 'rgba(74, 144, 226, 0.12)' },
+                border: '1px solid',
+                borderColor: notification.read ? 'transparent' : 'rgba(74, 144, 226, 0.2)'
               }}
               onClick={(e) => handleNotificationClick(e, notification)}
             >
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 0.5 }}>
                 {notification.message}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {notification.type === 'post' ? '🔔 โพสต์ใหม่' : '💬 ข้อความใหม่'}
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  {notification.type === 'post' ? '🔔 โพสต์ใหม่' : '💬 ข้อความใหม่'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {notification.createdAt?.toLocaleString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: 'numeric',
+                    month: 'short'
+                  })}
+                </Typography>
+              </Box>
             </Box>
           ))
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-            ไม่มีการแจ้งเตือนใหม่
-          </Typography>
+          <Box sx={{ 
+            p: 3, 
+            textAlign: 'center',
+            color: 'text.secondary'
+          }}>
+            <NotificationsOffIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
+            <Typography>ไม่มีการแจ้งเตือนใหม่</Typography>
+          </Box>
         )}
       </Popover>
+      
+      {/* เพิ่ม Dialog สำหรับแจ้งเตือนเมื่อผู้ใช้พยายามเข้าถึงหน้า Moodboard */}
+      <Dialog
+        open={openMoodboardAlert}
+        onClose={() => setOpenMoodboardAlert(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            p: 2,
+            maxWidth: '400px'
+          }
+        }}
+      >
+        <DialogContent>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            ฟีเจอร์ปิดปรับปรุงชั่วคราว
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            ขออภัย ฟีเจอร์มู้ดบอร์ดกำลังอยู่ระหว่างการปรับปรุงเพื่อแก้ไขข้อผิดพลาด จะกลับมาให้บริการเร็วๆ นี้
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button 
+              onClick={() => setOpenMoodboardAlert(false)} 
+              variant="contained"
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none'
+              }}
+            >
+              เข้าใจแล้ว
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

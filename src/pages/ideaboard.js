@@ -14,26 +14,27 @@ import ShareIcon from '@mui/icons-material/Share';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { containsInappropriateContent } from '../utils/contentFilter';
-import { serverTimestamp, getDoc } from 'firebase/firestore';
+import { serverTimestamp, getDoc, onSnapshot } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
 
 // Add these theme colors at the top of the file after imports
 const THEME_COLORS = {
-  primary: '#4A90E2',
-  secondary: '#50C878',
+  primary: '#009688',
+  secondary: '#4DB6AC',
   background: '#F5F7FA',
   cardBg: '#FFFFFF',
   text: '#2C3E50',
-  accent: '#FF6B6B'
+  accent: '#00796B'
 };
 
 // Update the CATEGORIES array with new colors
 const CATEGORIES = [
-  { id: 'project', label: 'โปรเจกต์', color: '#4A90E2' },
-  { id: 'study', label: 'การเรียน', color: '#50C878' },
-  { id: 'research', label: 'งานวิจัย', color: '#9B59B6' },
-  { id: 'presentation', label: 'งานนำเสนอ', color: '#F1C40F' },
-  { id: 'thesis', label: 'วิทยานิพนธ์', color: '#E74C3C' },
-  { id: 'group-work', label: 'งานกลุ่ม', color: '#1ABC9C' }
+  { id: 'project', label: 'โปรเจกต์', color: '#009688' },
+  { id: 'study', label: 'การเรียน', color: '#4DB6AC' },
+  { id: 'research', label: 'งานวิจัย', color: '#00796B' },
+  { id: 'presentation', label: 'งานนำเสนอ', color: '#26A69A' },
+  { id: 'thesis', label: 'วิทยานิพนธ์', color: '#00897B' },
+  { id: 'group-work', label: 'งานกลุ่ม', color: '#80CBC4' }
 ];
 
 function IdeaBoard() {
@@ -62,47 +63,27 @@ function IdeaBoard() {
   const [loadingLike, setLoadingLike] = useState(false);
   const [loadingComment, setLoadingComment] = useState(false);
 
-  useEffect(() => {
-    loadIdeas();
-  }, [selectedCategory]);
-
-  const loadIdeas = async () => {
-    try {
-      setLoading(true);
-      let q = query(collection(db, 'ideas'), orderBy('createdAt', 'desc'));
-      
-      if (selectedCategory !== 'all') {
-        q = query(
-          collection(db, 'ideas'),
-          where('category', '==', selectedCategory),
-          orderBy('createdAt', 'desc')
-        );
-      }
-
-      const querySnapshot = await getDocs(q);
-      const ideasData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setIdeas(ideasData);
-    } catch (error) {
-      console.error('Error loading ideas:', error);
-      setSnackbar({ open: true, message: 'เกิดข้อผิดพลาดในการโหลดไอเดีย', severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
+  // Add missing handleSnackbar function
+  const handleSnackbar = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
   };
 
+  // Add missing handleAddTag function
   const handleAddTag = () => {
-    if (currentTag && !newIdea.tags.includes(currentTag)) {
+    if (currentTag.trim() && !newIdea.tags.includes(currentTag.trim())) {
       setNewIdea({
         ...newIdea,
-        tags: [...newIdea.tags, currentTag]
+        tags: [...newIdea.tags, currentTag.trim()]
       });
       setCurrentTag('');
     }
   };
 
+  // Add missing handleRemoveTag function
   const handleRemoveTag = (tagToRemove) => {
     setNewIdea({
       ...newIdea,
@@ -110,23 +91,13 @@ function IdeaBoard() {
     });
   };
 
-  const handleSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
+  // Add missing handleIdeaClick function
+  const handleIdeaClick = (idea) => {
+    setSelectedIdea(idea);
+    setOpenDialog(true);
   };
 
-  const handleDelete = async (ideaId) => {
-    if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบไอเดียนี้?')) {
-      try {
-        await deleteDoc(doc(db, 'ideas', ideaId));
-        handleSnackbar('ลบไอเดียสำเร็จ');
-        loadIdeas();
-        setOpenDialog(false);
-      } catch (error) {
-        handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
-      }
-    }
-  };
-
+  // Add missing handleEdit function
   const handleEdit = (idea) => {
     setIsEditing(true);
     setEditingIdea(idea);
@@ -139,6 +110,64 @@ function IdeaBoard() {
     setOpenDialog(false);
   };
 
+  // Replace the useEffect that loads ideas with a real-time listener
+  useEffect(() => {
+    let unsubscribe;
+    
+    const setupRealTimeListener = () => {
+      setLoading(true);
+      let q = query(collection(db, 'ideas'), orderBy('createdAt', 'desc'));
+      
+      if (selectedCategory !== 'all') {
+        q = query(
+          collection(db, 'ideas'),
+          where('category', '==', selectedCategory),
+          orderBy('createdAt', 'desc')
+        );
+      }
+
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const ideasData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setIdeas(ideasData);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error in real-time listener:', error);
+        setSnackbar({ open: true, message: 'เกิดข้อผิดพลาดในการโหลดไอเดีย', severity: 'error' });
+        setLoading(false);
+      });
+    };
+
+    setupRealTimeListener();
+    
+    // Clean up listener when component unmounts or when selectedCategory changes
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [selectedCategory]);
+
+  // Remove the loadIdeas function since we're using real-time updates
+  // and update all references to it
+
+  // Update handleDelete to not call loadIdeas
+  const handleDelete = async (ideaId) => {
+    if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบไอเดียนี้?')) {
+      try {
+        await deleteDoc(doc(db, 'ideas', ideaId));
+        handleSnackbar('ลบไอเดียสำเร็จ');
+        setOpenDialog(false);
+        // No need to call loadIdeas() as the listener will update automatically
+      } catch (error) {
+        handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      }
+    }
+  };
+
+  // Update handleUpdate to not call loadIdeas
   const handleUpdate = async (e) => {
     e.preventDefault();
     
@@ -162,12 +191,13 @@ function IdeaBoard() {
       setIsEditing(false);
       setEditingIdea(null);
       setNewIdea({ title: '', description: '', category: '', tags: [] });
-      loadIdeas();
+      // No need to call loadIdeas() as the listener will update automatically
     } catch (error) {
       handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
     }
   };
 
+  // Update handleSubmit to not call loadIdeas
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!auth.currentUser) {
@@ -199,17 +229,13 @@ function IdeaBoard() {
       });
       setNewIdea({ title: '', description: '', category: '', tags: [] });
       handleSnackbar('แชร์ไอเดียสำเร็จ');
-      loadIdeas();
+      // No need to call loadIdeas() as the listener will update automatically
     } catch (error) {
       handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
     }
   };
 
-  const handleIdeaClick = (idea) => {
-    setSelectedIdea(idea);
-    setOpenDialog(true);
-  };
-
+  // Update handleLike to not call loadIdeas
   const handleLike = async (ideaId, e) => {
     if (e) e.stopPropagation();
     if (!auth.currentUser) {
@@ -241,8 +267,7 @@ function IdeaBoard() {
             : [...likedBy, auth.currentUser.uid],
         });
       }
-
-      loadIdeas();
+      // No need to call loadIdeas() as the listener will update automatically
     } catch (error) {
       handleSnackbar('เกิดข้อผิดพลาดในการกดถูกใจ', 'error');
     } finally {
@@ -250,42 +275,56 @@ function IdeaBoard() {
     }
   };
 
+  // Update handleAddComment to not call loadIdeas
   const handleAddComment = async (ideaId) => {
     if (!auth.currentUser) {
       handleSnackbar('กรุณาเข้าสู่ระบบก่อน', 'error');
       return;
     }
 
-    if (!comment.trim()) return;
+    if (!comment.trim()) {
+      handleSnackbar('กรุณากรอกความคิดเห็น', 'error');
+      return;
+    }
 
     setLoadingComment(true);
     try {
       const ideaRef = doc(db, 'ideas', ideaId);
       const ideaDoc = await getDoc(ideaRef);
       const ideaData = ideaDoc.data();
+      
+      if (!ideaDoc.exists()) {
+        throw new Error('ไม่พบไอเดียที่ต้องการคอมเมนต์');
+      }
+
+      const currentData = ideaDoc.data();
+      const currentComments = currentData.comments || [];
 
       const newComment = {
-        id: Date.now().toString(),
-        text: comment,
+        id: uuidv4(),
+        text: comment.trim(),
         userId: auth.currentUser.uid,
         userEmail: auth.currentUser.email,
+        userName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
         userPhoto: auth.currentUser.photoURL || '',
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString()
       };
 
       await updateDoc(ideaRef, {
-        comments: [...(ideaData.comments || []), newComment],
+        comments: [...currentComments, newComment]
       });
 
       setComment('');
-      loadIdeas();
-      setSelectedIdea({
-        ...selectedIdea,
-        comments: [...(ideaData.comments || []), newComment],
-      });
+      setSelectedIdea(prev => ({
+        ...prev,
+        comments: [...(prev.comments || []), newComment]
+      }));
+
       handleSnackbar('เพิ่มความคิดเห็นสำเร็จ');
+      // No need to call loadIdeas() as the listener will update automatically
     } catch (error) {
-      handleSnackbar('เกิดข้อผิดพลาดในการเพิ่มความคิดเห็น', 'error');
+      console.error('Comment error:', error);
+      handleSnackbar(error.message || 'เกิดข้อผิดพลาดในการเพิ่มความคิดเห็น', 'error');
     } finally {
       setLoadingComment(false);
     }
@@ -306,7 +345,7 @@ function IdeaBoard() {
         ...selectedIdea,
         comments: ideaData.comments.filter((c) => c.id !== commentId),
       });
-      loadIdeas();
+      // No need to call loadIdeas() as the listener will update automatically
       handleSnackbar('ลบความคิดเห็นสำเร็จ');
     } catch (error) {
       handleSnackbar('เกิดข้อผิดพลาดในการลบความคิดเห็น', 'error');
@@ -339,7 +378,7 @@ function IdeaBoard() {
         ...selectedIdea,
         comments: updatedComments,
       });
-      loadIdeas();
+      // No need to call loadIdeas() as the listener will update automatically
       setEditingComment(null);
       handleSnackbar('แก้ไขความคิดเห็นสำเร็จ');
     } catch (error) {
@@ -360,11 +399,13 @@ function IdeaBoard() {
     <Container 
       maxWidth="lg" 
       sx={{ 
-        py: isMobile ? 2 : 4, 
+        py: isMobile ? 4 : 4,  // Increased top padding for mobile
         px: isMobile ? 1 : 2,
         bgcolor: '#FFFFFF',
         minHeight: '100vh',
-        background: 'linear-gradient(145deg, #f6f8fb 0%, #e9edf5 100%)'
+        background: 'linear-gradient(145deg, #f6f8fb 0%, #e9edf5 100%)',
+        mt: isMobile ? 7 : 0,  // Add margin-top for mobile
+        mb: isMobile ? 8 : 0   // Add margin-bottom for mobile
       }}
     >
       <Typography
@@ -452,8 +493,8 @@ function IdeaBoard() {
               onClick={isEditing ? handleUpdate : undefined}
               fullWidth={isMobile}
               sx={{
-                bgcolor: isEditing ? '#4CAF50' : '#FF6B6B',
-                '&:hover': { bgcolor: isEditing ? '#45a049' : '#FF5252' },
+                bgcolor: isEditing ? '#009688' : '#009688',
+                '&:hover': { bgcolor: isEditing ? '#00796B' : '#00796B' },
                 borderRadius: '20px',
                 py: 1.5,
               }}
@@ -558,6 +599,10 @@ function IdeaBoard() {
                     }}
                     disabled={loadingLike}
                     color={idea.likedBy?.includes(auth.currentUser?.uid) ? "primary" : "default"}
+                    sx={{ 
+                      '&.Mui-disabled': { opacity: 0.5 },
+                      '&.MuiIconButton-colorPrimary': { color: '#009688' }
+                    }}
                   >
                     {loadingLike ? (
                       <CircularProgress size={16} />
@@ -631,6 +676,9 @@ function IdeaBoard() {
                   onClick={() => handleLike(selectedIdea.id)}
                   color={selectedIdea?.likedBy?.includes(auth.currentUser?.uid) ? "primary" : "default"}
                   disabled={loadingLike}
+                  sx={{ 
+                    '&.MuiIconButton-colorPrimary': { color: '#009688' }
+                  }}
                 >
                   {loadingLike ? (
                     <CircularProgress size={16} />
@@ -697,9 +745,11 @@ function IdeaBoard() {
                           {comment.userEmail}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          {comment.createdAt
-                            ? new Date(comment.createdAt.toDate()).toLocaleString('th-TH')
-                            : 'ไม่ระบุวันที่'}
+                          {comment.createdAt instanceof Date 
+                            ? comment.createdAt.toLocaleString('th-TH')
+                            : comment.createdAt
+                              ? new Date(comment.createdAt.seconds * 1000).toLocaleString('th-TH')
+                              : 'ไม่ระบุวันที่'}
                         </Typography>
                       </Box>
 
@@ -762,6 +812,7 @@ function IdeaBoard() {
                     startIcon={<EditIcon />}
                     onClick={() => handleEdit(selectedIdea)}
                     color="primary"
+                    sx={{ color: '#009688' }}
                   >
                     แก้ไข
                   </Button>
@@ -921,7 +972,11 @@ function IdeaBoard() {
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            '&.MuiAlert-standardSuccess': { bgcolor: 'rgba(0, 150, 136, 0.1)', color: '#009688' },
+            '& .MuiAlert-icon': { color: '#009688' }
+          }}
         >
           {snackbar.message}
         </Alert>

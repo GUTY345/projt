@@ -43,11 +43,23 @@ function MoodBoard() {
     }
   };
 
+  // Remove the first simple handleFileChange and keep only this enhanced version
   const handleFileChange = (e) => {
-    if (e.target.files[0]) {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        handleSnackbar('กรุณาเลือกไฟล์รูปภาพเท่านั้น', 'error');
+        return;
+      }
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        handleSnackbar('ขนาดไฟล์ต้องไม่เกิน 5MB', 'error');
+        return;
+      }
       setNewMood({
         ...newMood,
-        file: e.target.files[0]
+        file: file
       });
     }
   };
@@ -69,25 +81,29 @@ function MoodBoard() {
 
     setUploading(true);
     try {
-      const storageRef = ref(storage, `moodboards/${Date.now()}_${newMood.file.name}`);
-      await uploadBytes(storageRef, newMood.file);
-      const imageUrl = await getDownloadURL(storageRef);
-
-      await addDoc(collection(db, 'moodboards'), {
-        title: newMood.title,
-        description: newMood.description,
-        imageUrl,
-        userId: auth.currentUser.uid,
-        userName: auth.currentUser.displayName || 'ผู้ใช้ไม่ระบุชื่อ',
-        createdAt: new Date()
+      const formData = new FormData();
+      formData.append('file', newMood.file);
+      formData.append('title', newMood.title);
+      formData.append('description', newMood.description || '');
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
       });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'การอัพโหลดล้มเหลว');
+      }
 
       setNewMood({ title: '', description: '', file: null });
       setOpenDialog(false);
       handleSnackbar('อัพโหลดรูปภาพสำเร็จ');
-      loadImages();
+      await loadImages();
     } catch (error) {
-      handleSnackbar('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      console.error('Upload error:', error);
+      handleSnackbar(error.message || 'เกิดข้อผิดพลาดในการอัพโหลด', 'error');
     } finally {
       setUploading(false);
     }
@@ -219,7 +235,12 @@ function MoodBoard() {
                 borderRadius: 2,
                 p: 3,
                 textAlign: 'center',
-                mb: 2
+                mb: 2,
+                cursor: 'pointer',
+                '&:hover': {
+                  borderColor: '#4ECDC4',
+                  bgcolor: 'rgba(78, 205, 196, 0.04)'
+                }
               }}
             >
               <input
@@ -228,42 +249,64 @@ function MoodBoard() {
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
                 id="image-upload"
+                disabled={uploading}
               />
-              <label htmlFor="image-upload">
-                <Button
-                  component="span"
-                  startIcon={<AddPhotoAlternateIcon />}
-                  disabled={uploading}
-                >
-                  เลือกรูปภาพ
-                </Button>
+              <label htmlFor="image-upload" style={{ width: '100%', cursor: 'pointer' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <AddPhotoAlternateIcon sx={{ fontSize: 40, color: '#4ECDC4' }} />
+                  <Typography>
+                    {newMood.file ? 'เปลี่ยนรูปภาพ' : 'เลือกรูปภาพ'}
+                  </Typography>
+                </Box>
               </label>
               {newMood.file && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2">
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
                     {newMood.file.name}
-                    <IconButton 
-                      size="small" 
-                      onClick={() => setNewMood({ ...newMood, file: null })}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
                   </Typography>
+                  <IconButton 
+                    size="small" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setNewMood({ ...newMood, file: null });
+                    }}
+                    disabled={uploading}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
                 </Box>
               )}
             </Box>
-            <Button
-              fullWidth
-              variant="contained"
-              type="submit"
-              disabled={!newMood.file || !newMood.title || uploading}
-              sx={{ 
-                bgcolor: '#4ECDC4',
-                '&:hover': { bgcolor: '#45B7D1' }
-              }}
-            >
-              {uploading ? <CircularProgress size={24} /> : 'อัพโหลด'}
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => !uploading && setOpenDialog(false)}
+                disabled={uploading}
+                sx={{ 
+                  color: '#4ECDC4',
+                  borderColor: '#4ECDC4',
+                  '&:hover': { 
+                    borderColor: '#45B7D1',
+                    bgcolor: 'rgba(78, 205, 196, 0.04)'
+                  }
+                }}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                fullWidth
+                variant="contained"
+                type="submit"
+                disabled={!newMood.file || !newMood.title || uploading}
+                sx={{ 
+                  bgcolor: '#4ECDC4',
+                  '&:hover': { bgcolor: '#45B7D1' }
+                }}
+              >
+                {uploading ? <CircularProgress size={24} /> : 'อัพโหลด'}
+              </Button>
+            </Box>
           </form>
         </DialogContent>
       </Dialog>

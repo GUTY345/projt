@@ -8,6 +8,7 @@ import {
 import { auth, db, storage } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth'; // เพิ่ม import นี้
 import EditIcon from '@mui/icons-material/Edit';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -96,6 +97,17 @@ function Profile() {
   };
 
   const handlePhotoUpload = async (e) => {
+    // ปิดฟีเจอร์การเปลี่ยนรูปโปรไฟล์ชั่วคราวจนกว่าจะแก้ไขปัญหาเสร็จ
+    // ปิดฟีเจอร์ชั่วคราว
+    setSnackbar({ 
+      open: true, 
+      message: 'ฟีเจอร์นี้ถูกปิดชั่วคราวเนื่องจากอยู่ระหว่างการปรับปรุง', 
+      severity: 'info' 
+    });
+    return;
+    
+    // โค้ดเดิมที่ถูกปิดไว้ชั่วคราว
+    /*
     const file = e.target.files[0];
     if (file) {
       setUploading(true);
@@ -110,6 +122,7 @@ function Profile() {
       }
       setUploading(false);
     }
+    */
   };
 
   const toggleInterest = (tag) => {
@@ -135,7 +148,12 @@ function Profile() {
       // Update profile in users collection
       await setDoc(doc(db, 'users', auth.currentUser.uid), updatedProfile);
       
-      // Update displayName in ideas collection
+      // Update displayName in Firebase Authentication
+      await updateProfile(auth.currentUser, {
+        displayName: updatedProfile.displayName
+      });
+      
+      // Update all references in ideas collection
       const ideasQuery = query(
         collection(db, 'ideas'),
         where('userId', '==', auth.currentUser.uid)
@@ -144,11 +162,84 @@ function Profile() {
       
       const updatePromises = ideasSnapshot.docs.map(doc => 
         updateDoc(doc.ref, {
-          userDisplayName: updatedProfile.displayName
+          userName: updatedProfile.displayName,
+          // อัพเดททุกฟิลด์ที่อาจมีชื่อผู้ใช้
+          userDisplayName: updatedProfile.displayName,
+          author: updatedProfile.displayName
         })
       );
       
-      await Promise.all(updatePromises);
+      // Update all chat messages across all groups
+      const chatGroupsQuery = query(collection(db, 'chatGroups'));
+      const chatGroupsSnapshot = await getDocs(chatGroupsQuery);
+      
+      const chatUpdatePromises = [];
+      
+      // ดึงข้อมูลทุกกลุ่มแชทและอัพเดทข้อความทั้งหมดที่ผู้ใช้เป็นคนส่ง
+      for (const groupDoc of chatGroupsSnapshot.docs) {
+        // อัพเดทข้อมูลสมาชิกในกลุ่ม (ถ้ามี)
+        if (groupDoc.data().members?.includes(auth.currentUser.uid)) {
+          const memberData = groupDoc.data().memberData || {};
+          if (memberData[auth.currentUser.uid]) {
+            memberData[auth.currentUser.uid].displayName = updatedProfile.displayName;
+            chatUpdatePromises.push(
+              updateDoc(doc(db, 'chatGroups', groupDoc.id), { 
+                memberData: memberData 
+              })
+            );
+          }
+        }
+        
+        // อัพเดทข้อความในกลุ่ม
+        const messagesQuery = query(
+          collection(db, `chatGroups/${groupDoc.id}/messages`),
+          where('userId', '==', auth.currentUser.uid)
+        );
+        const messagesSnapshot = await getDocs(messagesQuery);
+        
+        messagesSnapshot.docs.forEach(messageDoc => {
+          chatUpdatePromises.push(
+            updateDoc(messageDoc.ref, {
+              userName: updatedProfile.displayName
+            })
+          );
+        });
+      }
+      
+      // อัพเดทคอมเมนต์ในไอเดียทั้งหมด
+      const allIdeasQuery = query(collection(db, 'ideas'));
+      const allIdeasSnapshot = await getDocs(allIdeasQuery);
+      
+      const commentUpdatePromises = [];
+      
+      allIdeasSnapshot.docs.forEach(ideaDoc => {
+        const ideaData = ideaDoc.data();
+        if (ideaData.comments && ideaData.comments.length > 0) {
+          const updatedComments = ideaData.comments.map(comment => {
+            if (comment.userId === auth.currentUser.uid) {
+              return {
+                ...comment,
+                userName: updatedProfile.displayName
+              };
+            }
+            return comment;
+          });
+          
+          if (JSON.stringify(updatedComments) !== JSON.stringify(ideaData.comments)) {
+            commentUpdatePromises.push(
+              updateDoc(doc(db, 'ideas', ideaDoc.id), {
+                comments: updatedComments
+              })
+            );
+          }
+        }
+      });
+      
+      // รวม promises ทั้งหมดและรอให้ทำงานเสร็จ
+      await Promise.all([...updatePromises, ...chatUpdatePromises, ...commentUpdatePromises]);
+      
+      // รีโหลดข้อมูลผู้ใช้จาก Firebase เพื่อให้แน่ใจว่าข้อมูลอัพเดทแล้ว
+      auth.currentUser.reload();
       
       setProfileData(updatedProfile);
       setProfile(updatedProfile);
@@ -202,45 +293,54 @@ function Profile() {
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
       }}>
         <Box sx={{ textAlign: 'center', position: 'relative', mb: 3 }}>
-          <label htmlFor="photo-upload">
-            <Box sx={{ 
-              position: 'relative', 
-              display: 'inline-block',
-              borderRadius: '50%',
-              p: 0.5,
-              background: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)',
-              mb: 2
-            }}>
-              <Avatar
-                src={profileData?.photoURL}
-                sx={{ 
-                  width: 120, 
-                  height: 120, 
-                  border: '4px solid',
-                  borderColor: theme.palette.background.paper,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          <Box sx={{ 
+            position: 'relative', 
+            display: 'inline-block',
+            borderRadius: '50%',
+            p: 0.5,
+            background: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)',
+            mb: 2
+          }}>
+            <Avatar
+              src={profileData?.photoURL}
+              sx={{ 
+                width: 120, 
+                height: 120, 
+                border: '4px solid',
+                borderColor: theme.palette.background.paper,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              }}
+            />
+            {/* ปิดปุ่มอัพโหลดรูปชั่วคราว
+            {isOwnProfile && !uploading && (
+              <IconButton
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  bottom: 5,
+                  right: 5,
+                  bgcolor: 'primary.main',
+                  width: 32,
+                  height: 32,
+                  color: 'white',
+                  '&:hover': { bgcolor: 'primary.dark' }
                 }}
-              />
-              {isOwnProfile && !uploading && (
-                <IconButton
-                  component="span"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 5,
-                    right: 5,
-                    bgcolor: 'primary.main',
-                    width: 32,
-                    height: 32,
-                    color: 'white',
-                    '&:hover': { bgcolor: 'primary.dark' }
-                  }}
-                >
-                  <PhotoCameraIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              )}
-            </Box>
-          </label>
-
+              >
+                <PhotoCameraIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            )}
+            */}
+          </Box>
+          
+          {/* ลบ input file ที่ซ่อนอยู่ */}
+          {/* <input
+            id="photo-upload"
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            style={{ display: 'none' }}
+          /> */}
+          
           {/* Replace the Typography with editable name field */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
             {isEditingName ? (

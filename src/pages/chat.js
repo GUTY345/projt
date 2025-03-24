@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Container,
@@ -15,7 +15,7 @@ import {
   Button
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { collection, query, orderBy, limit, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { formatDistanceToNow, formatDate, isSameDay } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -27,25 +27,37 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { deleteDoc, doc } from 'firebase/firestore';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { updateDoc, arrayRemove } from 'firebase/firestore';
+import VideoCallIcon from '@mui/icons-material/VideoCall';
+import EditIcon from '@mui/icons-material/Edit';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 
 function Chat() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const messagesEndRef = useRef(null);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Add new state for groups
+  // Add missing state declarations
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
   
+  const messagesEndRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Update scrollToBottom function
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Add useEffect for auto-scrolling when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
   // Add groups listener
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -63,8 +75,8 @@ function Chat() {
     );
   
     return () => unsubscribe();
-  }, []);
-  
+  }, [selectedGroup]);
+
   // Fix messages listener
   useEffect(() => {
     setLoading(true);
@@ -88,7 +100,6 @@ function Chat() {
       });
       setMessages(messageData.reverse());
       setLoading(false);
-      scrollToBottom();
     }, (error) => {
       console.error('Error loading messages:', error);
       setLoading(false);
@@ -97,23 +108,31 @@ function Chat() {
     return () => unsubscribe();
   }, [selectedGroup]);
 
-  // Update handleSubmit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedGroup) return;
+  // บบบบบบบบบบ
+  // const unsubscribe = onSnapshot(q, (snapshot) => { ... });
 
-    try {
-      await addDoc(collection(db, `chatGroups/${selectedGroup.id}/messages`), {
-        text: newMessage,
-        createdAt: new Date(),
-        userId: auth.currentUser.uid,
-        userName: auth.currentUser.displayName || 'ผู้ใช้ไม่ระบุชื่อ',
-        userPhoto: auth.currentUser.photoURL
-      });
-      setNewMessage('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
+  // Update handleSubmit
+  // Add at the top with other imports
+  const messageSound = new Audio('/message-sent.mp3');
+  
+  // Update handleSubmit function
+  const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!newMessage.trim() || !selectedGroup) return;
+  
+      try {
+        await addDoc(collection(db, `chatGroups/${selectedGroup.id}/messages`), {
+          text: newMessage,
+          createdAt: new Date(),
+          userId: auth.currentUser.uid,
+          userName: auth.currentUser.displayName || 'ผู้ใช้ไม่ระบุชื่อ',
+          userPhoto: auth.currentUser.photoURL
+        });
+        setNewMessage('');
+        messageSound.play().catch(err => console.log('Audio playback failed:', err));
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
   };
 
   // Add delete group handler
@@ -153,28 +172,43 @@ function Chat() {
   // Update the chat area section
   return (
     <Container 
-      maxWidth="md" 
+      maxWidth={false} 
+      disableGutters
       sx={{ 
-        height: isMobile ? 'calc(100vh - 56px)' : 'calc(100vh - 64px)', 
-        py: isMobile ? 0 : 2,
-        px: isMobile ? 0 : 2
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        bgcolor: '#ffffff'
       }}
     >
-      <Box sx={{ display: 'flex', height: '100%' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        height: '100%',
+        overflow: 'hidden',
+        pt: { xs: '56px', md: '64px' },
+        pb: { xs: '56px', md: 0 }
+      }}>
         {/* Groups Sidebar */}
         <Paper 
+          elevation={0}
           sx={{ 
-            width: 280,
+            width: { xs: '100%', md: 360 },
+            height: '100%',
+            position: 'relative',
             display: { xs: selectedGroup ? 'none' : 'flex', md: 'flex' },
             flexDirection: 'column',
-            borderRadius: isMobile ? 0 : '12px 0 0 12px',
             borderRight: 1,
             borderColor: 'divider',
-            bgcolor: 'background.paper'
+            bgcolor: '#ffffff'
           }}
         >
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>กลุ่มแชท</Typography>
+          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>แชท</Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 startIcon={<AddIcon />}
@@ -182,118 +216,125 @@ function Chat() {
                 onClick={() => setShowCreateGroup(true)}
                 size="small"
                 fullWidth
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500
+                }}
               >
-                สร้างกลุ่ม
-              </Button>
-              <Button
-                startIcon={<GroupAddIcon />}
-                variant="outlined"
-                onClick={() => setShowJoinGroup(true)}
-                size="small"
-              >
-                เข้าร่วม
+                สร้างกลุ่มใหม่
               </Button>
             </Box>
           </Box>
-      
-          <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+
+          <Box sx={{ flex: 1, overflow: 'auto', px: 1, py: 1 }}>
             {groups.map(group => (
-              <Paper
+              <Box
                 key={group.id}
                 onClick={() => setSelectedGroup(group)}
                 sx={{
-                  p: 2,
-                  mb: 1,
+                  p: 1.5,
+                  mb: 0.5,
                   cursor: 'pointer',
                   borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
                   transition: 'all 0.2s',
-                  bgcolor: selectedGroup?.id === group.id ? 'action.selected' : 'background.paper',
+                  bgcolor: selectedGroup?.id === group.id ? 'action.selected' : 'transparent',
                   '&:hover': {
-                    bgcolor: 'action.hover',
-                    transform: 'translateY(-1px)',
-                    boxShadow: 1
+                    bgcolor: 'action.hover'
                   }
                 }}
               >
-                <Typography variant="subtitle2" fontWeight={600}>{group.name}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
-                </Typography>
-              </Paper>
+                <Avatar sx={{ width: 48, height: 48 }}>
+                  {group.name.charAt(0)}
+                </Avatar>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle1" fontWeight={500} noWrap>
+                    {group.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
+                  </Typography>
+                </Box>
+              </Box>
             ))}
           </Box>
         </Paper>
-      
+
         {/* Chat Area */}
-        <Paper 
+        <Box 
           sx={{ 
-            flex: 1, 
-            display: 'flex', 
+            flex: 1,
+            height: '100%',
+            position: 'relative',
+            display: { xs: selectedGroup ? 'flex' : 'none', md: 'flex' },
             flexDirection: 'column',
-            borderRadius: isMobile ? 0 : '0 12px 12px 0',
-            overflow: 'hidden'
+            bgcolor: '#ffffff'
           }}
         >
+          {/* Chat Header */}
           <Box sx={{ 
-            p: 2, 
-            bgcolor: 'primary.main', 
-            color: 'white',
+            px: 2, 
+            py: 1.5,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            gap: 2
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {isMobile && selectedGroup && (
-                <IconButton 
-                  size="small" 
-                  onClick={() => setSelectedGroup(null)}
-                  sx={{ color: 'white' }}
-                >
-                  <ArrowBackIcon />
-                </IconButton>
-              )}
-              <Typography variant={isMobile ? "subtitle1" : "h6"} fontWeight="500">
-                {selectedGroup ? selectedGroup.name : 'เลือกกลุ่มแชท'}
-              </Typography>
-            </Box>
+            {isMobile && (
+              <IconButton 
+                size="small" 
+                onClick={() => setSelectedGroup(null)}
+                sx={{ color: 'text.primary' }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+            )}
             {selectedGroup && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {selectedGroup?.isPrivate && (
-                  <Tooltip title="รหัสกลุ่ม">
-                    <Typography variant="body2" sx={{ color: 'white' }}>
-                      🔑 {selectedGroup.groupCode}
-                    </Typography>
-                  </Tooltip>
-                )}
-                {selectedGroup?.createdBy === auth.currentUser.uid ? (
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDeleteGroup(selectedGroup.id)}
-                    sx={{ color: 'white' }}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                ) : (
-                  <IconButton
-                    size="small"
-                    onClick={() => handleLeaveGroup(selectedGroup.id)}
-                    sx={{ color: 'white' }}
-                  >
-                    <LogoutIcon />
-                  </IconButton>
-                )}
-              </Box>
+              <>
+                <Avatar sx={{ width: 40, height: 40 }}>
+                  {selectedGroup.name.charAt(0)}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={500}>
+                    {selectedGroup.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedGroup.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
+                  </Typography>
+                </Box>
+                <Box>
+                  {selectedGroup.createdBy === auth.currentUser.uid ? (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteGroup(selectedGroup.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  ) : (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleLeaveGroup(selectedGroup.id)}
+                    >
+                      <LogoutIcon />
+                    </IconButton>
+                  )}
+                </Box>
+              </>
             )}
           </Box>
-      
+
+          {/* Messages Area */}
           <Box 
             sx={{ 
               flex: 1, 
               overflow: 'auto', 
-              p: 2, 
-              bgcolor: '#f8f9fa',
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)',
-              backgroundSize: '100% 48px'
+              px: 2,
+              py: 3,
+              bgcolor: '#f0f2f5'
             }}
           >
             {loading ? (
@@ -306,65 +347,61 @@ function Chat() {
             <div ref={messagesEndRef} />
           </Box>
 
+          {/* Message Input */}
           {selectedGroup && (
             <Box 
               component="form" 
               onSubmit={handleSubmit}
               sx={{
-                p: 2,
-                display: 'flex',
-                gap: 1,
-                bgcolor: 'background.paper',
-                borderTop: 1,
-                borderColor: 'divider'
+                p: 1.5,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                bgcolor: '#ffffff'
               }}
             >
-              <TextField
-                fullWidth
-                placeholder="พิมพ์ข้อความ..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                variant="outlined"
-                size="medium"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    bgcolor: '#f8f9fa',
-                    '&:hover': {
-                      bgcolor: '#fff'
-                    },
-                    '&.Mui-focused': {
-                      bgcolor: '#fff'
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  fullWidth
+                  placeholder="Aa"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  variant="outlined"
+                  size={isMobile ? "small" : "medium"}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      bgcolor: '#f0f2f5',
+                      '&:hover': {
+                        bgcolor: '#e4e6eb'
+                      }
                     }
-                  }
-                }}
-              />
-              <IconButton 
-                type="submit" 
-                disabled={!newMessage.trim()}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  width: 48,
-                  height: 48,
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                    transform: 'scale(1.05)'
-                  },
-                  '&.Mui-disabled': {
-                    bgcolor: 'action.disabledBackground',
-                    color: 'action.disabled'
-                  }
-                }}
-              >
-                <SendIcon />
-              </IconButton>
+                  }}
+                />
+                <IconButton 
+                  type="submit" 
+                  disabled={!newMessage.trim()}
+                  size={isMobile ? "small" : "medium"}
+                  sx={{
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    width: { xs: 36, md: 44 },
+                    height: { xs: 36, md: 44 },
+                    '&:hover': {
+                      bgcolor: 'primary.dark'
+                    },
+                    '&.Mui-disabled': {
+                      bgcolor: '#e4e6eb',
+                      color: '#bcc0c4'
+                    }
+                  }}
+                >
+                  <SendIcon fontSize={isMobile ? "small" : "medium"} />
+                </IconButton>
+              </Box>
             </Box>
           )}
-        </Paper>
-      
-        <ChatGroupDialog
+        </Box>
+      <ChatGroupDialog
           open={showCreateGroup}
           onClose={() => setShowCreateGroup(false)}
         />
@@ -468,12 +505,14 @@ function renderMessageGroup(messages, index) {
                 elevation={0}
                 sx={{
                   p: 1.5,
-                  bgcolor: isCurrentUser ? 'primary.main' : 'background.paper',
+                  bgcolor: isCurrentUser ? 'primary.light' : 'background.paper',
                   color: isCurrentUser ? 'white' : 'inherit',
                   borderRadius: 2,
                   maxWidth: '100%',
                   wordBreak: 'break-word',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  boxShadow: isCurrentUser 
+                    ? '0 1px 2px rgba(25, 118, 210, 0.15)'
+                    : '0 1px 2px rgba(0,0,0,0.1)',
                   position: 'relative'
                 }}
               >
@@ -502,3 +541,7 @@ function renderMessageGroup(messages, index) {
     </Box>
   );
 }
+
+// Remove everything below this line:
+// - The duplicate import { serverTimestamp } from 'firebase/firestore';
+// - The handleSendMessage function
