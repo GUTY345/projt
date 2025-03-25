@@ -222,9 +222,9 @@ function Navbar({ user }) {
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           top: 0,
-          pt: { xs: 'env(safe-area-inset-top)', sm: 0 },  // เพิ่ม padding top สำหรับ notch บน iOS
+          pt: { xs: 'env(safe-area-inset-top)', sm: 0 },  // เพิ่ม padding top สำหรับ status bar บน iOS
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: { xs: 'calc(56px + env(safe-area-inset-top))', sm: '64px' }  // ปรับความสูงให้รองรับ notch
+          height: { xs: 'calc(56px + env(safe-area-inset-top))', sm: '64px' }  // ปรับความสูงให้รองรับ status bar
         }}
       >
         <Toolbar 
@@ -232,7 +232,8 @@ function Navbar({ user }) {
             justifyContent: 'space-between', 
             px: { xs: 2, sm: 4 },
             minHeight: { xs: '56px', sm: '64px' },
-            mt: { xs: 'env(safe-area-inset-top)', sm: 0 }  // เพิ่ม margin top สำหรับเนื้อหาใน toolbar
+            pt: { xs: 'env(safe-area-inset-top)', sm: 0 },  // แก้จาก mt เป็น pt เพื่อให้ทำงานได้ถูกต้อง
+            pb: { xs: 0, sm: 0 }  // เพิ่ม padding bottom เป็น 0 เพื่อให้ความสูงถูกต้อง
           }}
         >
           {isMobile ? (
