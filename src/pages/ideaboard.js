@@ -16,6 +16,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { containsInappropriateContent } from '../utils/contentFilter';
 import { serverTimestamp, getDoc, onSnapshot } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
+import IdeaCard from '../components/IdeaBoard/IdeaCard';
 
 // Add these theme colors at the top of the file after imports
 const THEME_COLORS = {
@@ -307,7 +308,7 @@ function IdeaBoard() {
         userEmail: auth.currentUser.email,
         userName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
         userPhoto: auth.currentUser.photoURL || '',
-        createdAt: serverTimestamp() // Change this line to use Firestore serverTimestamp
+        createdAt: new Date().toISOString()
       };
 
       await updateDoc(ideaRef, {
@@ -602,7 +603,7 @@ function IdeaBoard() {
                     sx={{ 
                       '&.Mui-disabled': { opacity: 0.5 },
                       '&.MuiIconButton-colorPrimary': { 
-                        color: '#E91E63',  // Change to pink color for liked state
+                        color: '#E91E63',  // Change to pink color
                         '& .MuiSvgIcon-root': { 
                           color: '#E91E63',
                           fill: '#E91E63' 
@@ -697,13 +698,7 @@ function IdeaBoard() {
                   ) : (
                     <>
                       <ThumbUpIcon />
-                      <Typography sx={{ 
-                        ml: 1,
-                        color: selectedIdea?.likedBy?.includes(auth.currentUser?.uid) ? '#E91E63' : 'inherit'
-                      }}
-                      >
-                        {selectedIdea?.likes || 0}
-                      </Typography>
+                      <Typography sx={{ ml: 1 }}>{selectedIdea?.likes || 0}</Typography>
                     </>
                   )}
                 </IconButton>
@@ -763,15 +758,11 @@ function IdeaBoard() {
                           {comment.userEmail}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          {comment.createdAt?.seconds 
-                            ? new Date(comment.createdAt.seconds * 1000).toLocaleString('th-TH', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'ไม่ระบุวันที่'}
+                          {comment.createdAt instanceof Date 
+                            ? comment.createdAt.toLocaleString('th-TH')
+                            : comment.createdAt
+                              ? new Date(comment.createdAt.seconds * 1000).toLocaleString('th-TH')
+                              : 'ไม่ระบุวันที่'}
                         </Typography>
                       </Box>
 
