@@ -83,7 +83,7 @@ function Flashcards() {
         {
           method: 'POST',
           headers: {
-            Authorization: 'Bearer $ {process.env.DEEPSEEK_API_KEY}',
+            Authorization: 'Bearer $ {process.env.OPENROUTER_API_KEY}',
             'HTTP-Referer': 'https://notenova-five.vercel.app',
             'X-Title': 'AI ChatBot',
             'Content-Type': 'application/json',
