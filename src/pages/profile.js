@@ -125,11 +125,13 @@ function Profile() {
     */
   };
 
+  // Update the toggleInterest function to handle undefined interests
   const toggleInterest = (tag) => {
-    const newInterests = profile.interests.includes(tag)
-      ? profile.interests.filter(t => t !== tag)
-      : [...profile.interests, tag];
-    setProfile({ ...profile, interests: newInterests });
+    const currentInterests = profile?.interests || [];
+    const newInterests = currentInterests.includes(tag)
+      ? currentInterests.filter(t => t !== tag)
+      : [...currentInterests, tag];
+    setProfile(prev => ({ ...prev, interests: newInterests }));
   };
 
   // Add new state for name editing
@@ -454,31 +456,32 @@ function Profile() {
             >
               ความสนใจ
             </Typography>
+            // Update the Chip component rendering
             <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1,
-              justifyContent: 'center' 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: 1,
+            justifyContent: 'center' 
             }}>
-              {INTEREST_TAGS.map((tag) => (
-                <Chip
-                  key={tag}
-                  label={tag}
-                  onClick={isOwnProfile ? () => toggleInterest(tag) : undefined}
-                  color={profileData?.interests?.includes(tag) ? "primary" : "default"}
-                  variant={profileData?.interests?.includes(tag) ? "filled" : "outlined"}
-                  sx={{ 
-                    m: 0.5,
-                    borderRadius: '12px',
-                    cursor: isOwnProfile ? 'pointer' : 'default',
-                    transition: 'all 0.2s ease',
-                    '&:hover': isOwnProfile ? {
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    } : {}
-                  }}
-                />
-              ))}
+            {INTEREST_TAGS.map((tag) => (
+            <Chip
+            key={tag}
+            label={tag}
+            onClick={isOwnProfile ? () => toggleInterest(tag) : undefined}
+            color={(profile?.interests || []).includes(tag) ? "primary" : "default"}
+            variant={(profile?.interests || []).includes(tag) ? "filled" : "outlined"}
+            sx={{ 
+            m: 0.5,
+            borderRadius: '12px',
+            cursor: isOwnProfile ? 'pointer' : 'default',
+            transition: 'all 0.2s ease',
+            '&:hover': isOwnProfile ? {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            } : {}
+            }}
+            />
+            ))}
             </Box>
           </Box>
 

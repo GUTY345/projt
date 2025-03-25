@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+// Add logo import at the top
+import logo from '../assets/logo/Logo.png';
 import { Box, Button, Typography, Container, Paper, Snackbar, Alert, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -133,11 +135,11 @@ function Welcome() {
           >
             <Box
               component="img"
-              src="/logo192.png"
+              src={logo}
               alt="NoteNova"
               sx={{
-                width: 150,
-                height: 150,
+                width: 300,  // Changed from 150 to 200
+                height: 300, // Changed from 150 to 200
                 mb: 4,
                 filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))',
               }}
