@@ -307,7 +307,7 @@ function IdeaBoard() {
         userEmail: auth.currentUser.email,
         userName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
         userPhoto: auth.currentUser.photoURL || '',
-        createdAt: new Date().toISOString()
+        createdAt: serverTimestamp() // Change this line to use Firestore serverTimestamp
       };
 
       await updateDoc(ideaRef, {
@@ -601,7 +601,13 @@ function IdeaBoard() {
                     color={idea.likedBy?.includes(auth.currentUser?.uid) ? "primary" : "default"}
                     sx={{ 
                       '&.Mui-disabled': { opacity: 0.5 },
-                      '&.MuiIconButton-colorPrimary': { color: '#009688' }
+                      '&.MuiIconButton-colorPrimary': { 
+                        color: '#E91E63',  // Change to pink color for liked state
+                        '& .MuiSvgIcon-root': { 
+                          color: '#E91E63',
+                          fill: '#E91E63' 
+                        }
+                      }
                     }}
                   >
                     {loadingLike ? (
@@ -677,7 +683,13 @@ function IdeaBoard() {
                   color={selectedIdea?.likedBy?.includes(auth.currentUser?.uid) ? "primary" : "default"}
                   disabled={loadingLike}
                   sx={{ 
-                    '&.MuiIconButton-colorPrimary': { color: '#009688' }
+                    '&.MuiIconButton-colorPrimary': { 
+                      color: '#E91E63',
+                      '& .MuiSvgIcon-root': { 
+                        color: '#E91E63',
+                        fill: '#E91E63' 
+                      }
+                    }
                   }}
                 >
                   {loadingLike ? (
@@ -685,7 +697,13 @@ function IdeaBoard() {
                   ) : (
                     <>
                       <ThumbUpIcon />
-                      <Typography sx={{ ml: 1 }}>{selectedIdea?.likes || 0}</Typography>
+                      <Typography sx={{ 
+                        ml: 1,
+                        color: selectedIdea?.likedBy?.includes(auth.currentUser?.uid) ? '#E91E63' : 'inherit'
+                      }}
+                      >
+                        {selectedIdea?.likes || 0}
+                      </Typography>
                     </>
                   )}
                 </IconButton>
@@ -745,11 +763,15 @@ function IdeaBoard() {
                           {comment.userEmail}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          {comment.createdAt instanceof Date 
-                            ? comment.createdAt.toLocaleString('th-TH')
-                            : comment.createdAt
-                              ? new Date(comment.createdAt.seconds * 1000).toLocaleString('th-TH')
-                              : 'ไม่ระบุวันที่'}
+                          {comment.createdAt?.seconds 
+                            ? new Date(comment.createdAt.seconds * 1000).toLocaleString('th-TH', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'ไม่ระบุวันที่'}
                         </Typography>
                       </Box>
 
