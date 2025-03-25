@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Container,
@@ -33,7 +33,9 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import { debounce } from 'lodash';  // Add this import
 
+// Add this near the top with other state declarations
 function Chat() {
   // State declarations
   const [messages, setMessages] = useState([]);
@@ -43,8 +45,14 @@ function Chat() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
-  const [showGroupList, setShowGroupList] = useState(true); // This is the only declaration of showGroupList
+  const [showGroupList, setShowGroupList] = useState(true);
   const [showJoinCode, setShowJoinCode] = useState(false);
+
+  // Add message sounds
+  const messageReceivedSound = useMemo(() => new Audio('/message-received.mp3'), []);
+  const messageSound = useMemo(() => new Audio('/message-sent.mp3'), []);
+  const userJoinSound = useMemo(() => new Audio('/user-join.mp3'), []);
+  const userLeaveSound = useMemo(() => new Audio('/user-leave.mp3'), []);
 
   const messagesEndRef = useRef(null);
   const theme = useTheme();
@@ -97,6 +105,23 @@ function Chat() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const messageData = [];
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const message = { id: change.doc.id, ...change.doc.data() };
+          if (message.createdAt?.toDate() > new Date(Date.now() - 1000)) {
+            if (message.isSystemMessage) {
+              if (message.text.includes('เข้าร่วมกลุ่ม')) {
+                userJoinSound.play().catch(err => console.log('Audio playback failed:', err));
+              } else if (message.text.includes('ออกจากกลุ่ม')) {
+                userLeaveSound.play().catch(err => console.log('Audio playback failed:', err));
+              }
+            } else if (message.userId !== auth.currentUser?.uid) {
+              messageReceivedSound.play().catch(err => console.log('Audio playback failed:', err));
+            }
+          }
+        }
+      });
+      
       snapshot.forEach((doc) => {
         messageData.push({ id: doc.id, ...doc.data() });
       });
@@ -108,10 +133,10 @@ function Chat() {
     });
 
     return () => unsubscribe();
-  }, [selectedGroup]);
+  }, [selectedGroup, messageReceivedSound, userJoinSound, userLeaveSound]);
 
-  // Sound for message sending
-  const messageSound = new Audio('/message-sent.mp3');
+  // Remove this duplicate declaration
+  // const messageSound = new Audio('/message-sent.mp3');
 
   // Handle message submission
   const handleSubmit = async (e) => {

@@ -19,14 +19,14 @@ function Home() {
   
   // ข้อมูลการอัปเดตล่าสุด
   const latestUpdate = {
-    version: "1.0.4",
-    date: "25 มีนาคม 2025",
+    version: "1.0.5",
+    date: "25 มีนาคม 2025 เวลา 17:00 น.",
     features: [
-      { type: 'new', text: 'เพิ่มหน้าการตั้งค่า' },
-      { type: 'new', text: 'เพิ่มการลบบัญชี' },
-      { type: 'improvement', text: 'ปรับปรุงตัวอักษร' },
+      { type: 'new', text: 'เพิ่มเสียงแจ้งเตือนในแชท' },
+      { type: 'improvement', text: 'ปรับปรุงประสิทธิภาพการเชื่อมต่อ' },
+      { type: 'improvement', text: 'ปรับปรุงดีไซน์แชท' },
       { type: 'improvement', text: 'ปรับปรุง UI ให้ใช้งานง่ายขึ้นบนอุปกรณ์มือถือ' },
-      { type: 'bugfix', text: 'แก้ไขปัญหาการตั้งค่า' },
+      { type: 'bugfix', text: 'แก้ไขปัญหาเสียงในแชท' },
       { type: 'announcement', text: 'ฟีเจอร์มู้ดบอร์ดถูกปิดชั่วคราวเพื่อปรับปรุงประสิทธิภาพ' },
       { type: 'announcement', text: 'ฟีเจอร์โหมดมืดยังใช้งานไม่ได้ชั่วคราว' }
     ]
