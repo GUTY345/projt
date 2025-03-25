@@ -108,7 +108,7 @@ function Chat() {
     return () => unsubscribe();
   }, [selectedGroup]);
 
-  // บบบบบบบบบบ
+  // บบบบบบบบบบบบบบบบบบ
   // const unsubscribe = onSnapshot(q, (snapshot) => { ... });
 
   // Update handleSubmit
@@ -169,250 +169,344 @@ function Chat() {
     }
   };
 
+  // เพิ่ม state สำหรับการแสดงหน้าเลือกกลุ่มแชท
+  const [showGroupList, setShowGroupList] = useState(true);
+
   // Update the chat area section
   return (
     <Container 
-      maxWidth={false} 
-      disableGutters
+      maxWidth="lg" 
       sx={{ 
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        bgcolor: '#ffffff'
+        pt: { xs: 0, sm: 2 },
+        pb: { xs: 0, sm: 2 },
+        px: { xs: 0, sm: 2 },
+        bgcolor: { xs: 'transparent', sm: '#f0f2f5' }
       }}
     >
-      <Box sx={{ 
-        display: 'flex', 
-        height: '100%',
-        overflow: 'hidden',
-        pt: { xs: '56px', md: '64px' },
-        pb: { xs: '56px', md: 0 }
-      }}>
-        {/* Groups Sidebar */}
-        <Paper 
-          elevation={0}
-          sx={{ 
-            width: { xs: '100%', md: 360 },
-            height: '100%',
-            position: 'relative',
-            display: { xs: selectedGroup ? 'none' : 'flex', md: 'flex' },
-            flexDirection: 'column',
-            borderRight: 1,
-            borderColor: 'divider',
-            bgcolor: '#ffffff'
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>แชท</Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                startIcon={<AddIcon />}
-                variant="contained"
-                onClick={() => setShowCreateGroup(true)}
-                size="small"
-                fullWidth
-                sx={{ 
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 500
-                }}
-              >
-                สร้างกลุ่มใหม่
-              </Button>
-            </Box>
-          </Box>
-
-          <Box sx={{ flex: 1, overflow: 'auto', px: 1, py: 1 }}>
-            {groups.map(group => (
-              <Box
-                key={group.id}
-                onClick={() => setSelectedGroup(group)}
-                sx={{
-                  p: 1.5,
-                  mb: 0.5,
-                  cursor: 'pointer',
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  transition: 'all 0.2s',
-                  bgcolor: selectedGroup?.id === group.id ? 'action.selected' : 'transparent',
-                  '&:hover': {
-                    bgcolor: 'action.hover'
-                  }
-                }}
-              >
-                <Avatar sx={{ width: 48, height: 48 }}>
-                  {group.name.charAt(0)}
-                </Avatar>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle1" fontWeight={500} noWrap>
-                    {group.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {group.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        </Paper>
-
-        {/* Chat Area */}
-        <Box 
-          sx={{ 
-            flex: 1,
-            height: '100%',
-            position: 'relative',
-            display: { xs: selectedGroup ? 'flex' : 'none', md: 'flex' },
-            flexDirection: 'column',
-            bgcolor: '#ffffff'
-          }}
-        >
-          {/* Chat Header */}
-          <Box sx={{ 
-            px: 2, 
-            py: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
-          }}>
-            {isMobile && (
-              <IconButton 
-                size="small" 
-                onClick={() => setSelectedGroup(null)}
-                sx={{ color: 'text.primary' }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-            )}
-            {selectedGroup && (
-              <>
-                <Avatar sx={{ width: 40, height: 40 }}>
-                  {selectedGroup.name.charAt(0)}
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" fontWeight={500}>
-                    {selectedGroup.name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {selectedGroup.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
-                  </Typography>
-                </Box>
-                <Box>
-                  {selectedGroup.createdBy === auth.currentUser.uid ? (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteGroup(selectedGroup.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  ) : (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleLeaveGroup(selectedGroup.id)}
-                    >
-                      <LogoutIcon />
-                    </IconButton>
-                  )}
-                </Box>
-              </>
-            )}
-          </Box>
-
-          {/* Messages Area */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexGrow: 1,
+          borderRadius: { xs: 0, sm: 2 },
+          overflow: 'hidden',
+          border: { xs: 'none', sm: '1px solid' },
+          borderColor: 'divider',
+          mt: { xs: 'calc(56px + env(safe-area-inset-top))', sm: 0 },
+          mb: { xs: 'calc(56px + env(safe-area-inset-bottom))', sm: 0 },
+          height: { 
+            xs: 'calc(100vh - 56px - env(safe-area-inset-top) - 56px - env(safe-area-inset-bottom))', 
+            sm: '100%' 
+          },
+          flexDirection: { xs: 'column', md: 'row' },
+          bgcolor: 'background.paper',
+          boxShadow: { xs: 'none', sm: '0 2px 12px rgba(0, 0, 0, 0.1)' }
+        }}
+      >
+        {/* Group List - Show on desktop or when showGroupList is true on mobile */}
+        {(!isMobile || (isMobile && showGroupList)) && (
           <Box 
             sx={{ 
-              flex: 1, 
-              overflow: 'auto', 
-              px: 2,
-              py: 3,
-              bgcolor: '#f0f2f5'
+              width: { xs: '100%', md: 360 },
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              bgcolor: 'background.paper'
             }}
           >
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <CircularProgress size={32} />
-              </Box>
-            ) : (
-              messages.map((message, index) => renderMessageGroup(messages, index))
-            )}
-            <div ref={messagesEndRef} />
-          </Box>
-
-          {/* Message Input */}
-          {selectedGroup && (
-            <Box 
-              component="form" 
-              onSubmit={handleSubmit}
-              sx={{
-                p: 1.5,
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                bgcolor: '#ffffff'
-              }}
-            >
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <TextField
-                  fullWidth
-                  placeholder="Aa"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  variant="outlined"
-                  size={isMobile ? "small" : "medium"}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      bgcolor: '#f0f2f5',
-                      '&:hover': {
-                        bgcolor: '#e4e6eb'
-                      }
-                    }
-                  }}
-                />
+            {/* Group List Header */}
+            <Box sx={{ 
+              p: 2, 
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700,
+                  background: 'linear-gradient(45deg, #009688 30%, #4DB6AC 90%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}
+              >
+                ข้อความ
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <IconButton 
-                  type="submit" 
-                  disabled={!newMessage.trim()}
-                  size={isMobile ? "small" : "medium"}
-                  sx={{
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    width: { xs: 36, md: 44 },
-                    height: { xs: 36, md: 44 },
-                    '&:hover': {
-                      bgcolor: 'primary.dark'
-                    },
-                    '&.Mui-disabled': {
-                      bgcolor: '#e4e6eb',
-                      color: '#bcc0c4'
-                    }
+                  onClick={() => setShowCreateGroup(true)}
+                  sx={{ 
+                    bgcolor: '#f0f2f5',
+                    '&:hover': { bgcolor: '#e4e6eb' }
                   }}
                 >
-                  <SendIcon fontSize={isMobile ? "small" : "medium"} />
+                  <AddIcon />
+                </IconButton>
+                <IconButton 
+                  onClick={() => setShowJoinGroup(true)}
+                  sx={{ 
+                    bgcolor: '#f0f2f5',
+                    '&:hover': { bgcolor: '#e4e6eb' }
+                  }}
+                >
+                  <GroupAddIcon />
                 </IconButton>
               </Box>
             </Box>
-          )}
-        </Box>
-      <ChatGroupDialog
-          open={showCreateGroup}
-          onClose={() => setShowCreateGroup(false)}
-        />
-      
-        <JoinGroupDialog
-          open={showJoinGroup}
-          onClose={() => setShowJoinGroup(false)}
-        />
+
+            {/* Group List Items */}
+            <Box sx={{ 
+              flex: 1, 
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'transparent',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(0,0,0,0.1)',
+                borderRadius: '10px',
+                '&:hover': {
+                  background: 'rgba(0,0,0,0.2)',
+                }
+              }
+            }}>
+              {groups.map(group => (
+                <Box 
+                  key={group.id}
+                  onClick={() => {
+                    setSelectedGroup(group);
+                    if (isMobile) {
+                      setShowGroupList(false);  // Add this line to hide group list and show chat
+                    }
+                  }}
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    bgcolor: selectedGroup?.id === group.id ? '#e7f5f4' : 'transparent',
+                    '&:hover': {
+                      bgcolor: selectedGroup?.id === group.id ? '#e7f5f4' : '#f5f5f5'
+                    },
+                    borderRadius: 1
+                  }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 56, 
+                      height: 56, 
+                      bgcolor: 'primary.main',
+                      fontSize: '1.5rem'
+                    }}
+                  >
+                    {group.name.charAt(0)}
+                  </Avatar>
+                  <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                    <Typography 
+                      variant="subtitle1" 
+                      sx={{ 
+                        fontWeight: 600,
+                        color: selectedGroup?.id === group.id ? 'primary.main' : 'text.primary'
+                      }} 
+                      noWrap
+                    >
+                      {group.name}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: 'text.secondary',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5
+                      }}
+                    >
+                      {group.isPrivate ? '🔒' : '🌐'} 
+                      {group.isPrivate ? 'กลุ่มส่วนตัว' : 'กลุ่มสาธาระ'}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Chat Area - Show on desktop or when showGroupList is false on mobile */}
+        {(!isMobile || (isMobile && !showGroupList)) && (
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            flex: 1,
+            height: '100%'
+          }}>
+            {/* Chat Header */}
+            <Box sx={{ 
+              px: 2, 
+              py: 1.5,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2
+            }}>
+              {isMobile && (
+                <IconButton 
+                  size="small" 
+                  onClick={() => setShowGroupList(true)}
+                  sx={{ color: 'text.primary' }}
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+              )}
+              {selectedGroup && (
+                <>
+                  <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
+                    {selectedGroup.name.charAt(0)}
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle1" fontWeight={500}>
+                      {selectedGroup.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedGroup.isPrivate ? '🔒 กลุ่มส่วนตัว' : '🌐 กลุ่มสาธาระ'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    {selectedGroup.createdBy === auth.currentUser.uid ? (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteGroup(selectedGroup.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    ) : (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleLeaveGroup(selectedGroup.id)}
+                      >
+                        <LogoutIcon />
+                      </IconButton>
+                    )}
+                  </Box>
+                </>
+              )}
+            </Box>
+
+            {/* Messages Area */}
+            <Box 
+              sx={{ 
+                flex: 1, 
+                overflow: 'auto', 
+                px: 2,
+                py: 3,
+                bgcolor: '#f0f2f5',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'rgba(0,0,0,0.05)',
+                  borderRadius: '10px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(0,0,0,0.15)',
+                  borderRadius: '10px',
+                  '&:hover': {
+                    background: 'rgba(0,0,0,0.25)',
+                  },
+                },
+              }}
+            >
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                  <CircularProgress size={32} />
+                </Box>
+              ) : (
+                messages.map((message, index) => renderMessageGroup(messages, index))
+              )}
+              <div ref={messagesEndRef} />
+            </Box>
+
+            {/* Message Input */}
+            {selectedGroup && (
+              <Box 
+                component="form" 
+                onSubmit={handleSubmit}
+                sx={{
+                  p: 1.5,
+                  borderTop: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: '#ffffff',
+                  position: 'relative',
+                  zIndex: 1
+                }}
+              >
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    fullWidth
+                    placeholder="Aa"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    variant="outlined"
+                    size={isMobile ? "small" : "medium"}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                        bgcolor: '#f0f2f5',
+                        '&:hover': {
+                          bgcolor: '#e4e6eb'
+                        }
+                      }
+                    }}
+                  />
+                  <IconButton 
+                    type="submit" 
+                    disabled={!newMessage.trim()}
+                    size={isMobile ? "small" : "medium"}
+                    sx={{
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      width: { xs: 36, md: 44 },
+                      height: { xs: 36, md: 44 },
+                      '&:hover': {
+                        bgcolor: 'primary.dark'
+                      },
+                      '&.Mui-disabled': {
+                        bgcolor: '#e4e6eb',
+                        color: '#bcc0c4'
+                      }
+                    }}
+                  >
+                    <SendIcon fontSize={isMobile ? "small" : "medium"} />
+                  </IconButton>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
       </Box>
+      
+      {/* Dialogs */}
+      <ChatGroupDialog
+        open={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+      />
+      
+      <JoinGroupDialog
+        open={showJoinGroup}
+        onClose={() => setShowJoinGroup(false)}
+      />
     </Container>
-  );
+);
 }
 
 export default Chat;
