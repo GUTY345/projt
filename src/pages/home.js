@@ -10,6 +10,7 @@ import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import BugFixIcon from '@mui/icons-material/BugReport';
 import UpdateIcon from '@mui/icons-material/Update';
 import CloseIcon from '@mui/icons-material/Close';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';  // Add this import with others
 
 function Home() {
   const navigate = useNavigate();
@@ -19,16 +20,17 @@ function Home() {
   
   // ข้อมูลการอัปเดตล่าสุด
   const latestUpdate = {
-    version: "1.0.5",
-    date: "25 มีนาคม 2025 เวลา 17:00 น.",
+    version: "1.0.6",
+    date: "26 มีนาคม 2025 เวลา 02:20 น.",
     features: [
-      { type: 'new', text: 'เพิ่มเสียงแจ้งเตือนในแชท' },
-      { type: 'improvement', text: 'ปรับปรุงประสิทธิภาพการเชื่อมต่อ' },
-      { type: 'improvement', text: 'ปรับปรุงดีไซน์แชท' },
-      { type: 'improvement', text: 'ปรับปรุง UI ให้ใช้งานง่ายขึ้นบนอุปกรณ์มือถือ' },
-      { type: 'bugfix', text: 'แก้ไขปัญหาเสียงในแชท' },
-      { type: 'announcement', text: 'ฟีเจอร์มู้ดบอร์ดถูกปิดชั่วคราวเพื่อปรับปรุงประสิทธิภาพ' },
-      { type: 'announcement', text: 'ฟีเจอร์โหมดมืดยังใช้งานไม่ได้ชั่วคราว' }
+      { type: 'new', text: 'เพิ่มระบบ ChatBot ผู้ช่วย' },
+      { type: 'improvement', text: 'ปรับปรุงความเสถียรของระบบแชท' },
+      { type: 'improvement', text: 'เพิ่มความเร็วในการโหลดหน้าเว็บ' },
+      { type: 'improvement', text: 'ปรับปรุงการแสดงผลบนอุปกรณ์มือถือ' },
+      { type: 'bugfix', text: 'แก้ไขปัญหาเสียงหายในแชทกลุ่ม' },
+      { type: 'bugfix', text: 'แก้ไขข้อผิดพลาดในการบันทึกโน้ต' },
+      { type: 'announcement', text: 'ฟีเจอร์มู้ดบอร์ดจะกลับมาให้บริการในเร็วๆนี้' },
+      { type: 'announcement', text: 'ระบบโหมดมืดกำลังอยู่ในขั้นตอนการทดสอบ' }
     ]
   };
 
@@ -47,6 +49,16 @@ function Home() {
   };
 
   const features = [
+    // Add new AI Flashcard entry
+    {
+      title: 'AI Flashcard',
+      description: 'สร้างบัตรคำอัจฉริยะอัตโนมัติจากโน้ตของคุณ พร้อมระบบทบทวนแบบช่วงเวลาที่เหมาะสม',
+      icon: <AutoAwesomeIcon sx={{ fontSize: isMobile ? 28 : 32 }} />,
+      path: '/flashcards',
+      color: '#9C27B0',
+      gradient: 'linear-gradient(135deg, #9C27B0 0%, #BA68C8 100%)'
+    },
+    // Keep existing features
     {
       title: 'เชื่อมโยงไอเดีย',
       description: 'แชร์และเชื่อมโยงความคิดสร้างสรรค์ร่วมกับทีมของคุณ สร้างแผนผังความคิดและจัดระเบียบไอเดียได้อย่างไร้ขีดจำกัด',
@@ -134,7 +146,7 @@ function Home() {
           {features.map((feature) => (
             <Grid item xs={12} sm={6} md={3} key={feature.title}>
               <Card
-                onClick={() => navigate(feature.path)}
+                onClick={() => !feature.disabled && navigate(feature.path)}
                 sx={{
                   height: '100%',
                   bgcolor: 'white',

@@ -38,6 +38,7 @@ import '@fontsource/prompt';
 import '@fontsource/prompt/300';
 import '@fontsource/prompt/500';
 import '@fontsource/prompt/700';
+import Flashcards from './pages/flashcards';
 
 function App() {
   const { user } = useAuth();
@@ -132,7 +133,8 @@ function App() {
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/notes" element={<Notes />} />
                     <Route path="/profile/:userId?" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} /> {/* เพิ่มบรรทัดนี้ */}
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/flashcards" element={<Flashcards />} /> {/* Move this here */}
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </Suspense>
