@@ -519,34 +519,47 @@ function Chat() {
       >
         <DialogTitle>รหัสเข้าร่วมกลุ่ม</DialogTitle>
         <DialogContent>
-          <Box sx={{
-            p: 2,
-            textAlign: 'center',
-            bgcolor: '#f5f5f5',
-            borderRadius: 1,
-            mt: 1
-          }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#009688' }}>
-              {selectedGroup?.joinCode}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              แชร์รหัสนี้กับเพื่อนเพื่อเข้าร่วมกลุ่ม
-            </Typography>
-          </Box>
+          {selectedGroup?.joinCode && selectedGroup.createdBy === auth.currentUser?.uid ? (
+            <Box sx={{
+              p: 2,
+              textAlign: 'center',
+              bgcolor: '#f5f5f5',
+              borderRadius: 1,
+              mt: 1
+            }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#009688' }}>
+                {selectedGroup.joinCode}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                แชร์รหัสนี้กับเพื่อนเพื่อเข้าร่วมกลุ่ม
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                {selectedGroup?.isPrivate ? 
+                  'กลุ่มส่วนตัว โปรดติดต่อผู้สร้างกลุ่มเพื่อขอรหัส' : 
+                  'กลุ่มนี้ไม่ต้องการรหัสเข้าร่วม'}
+              </Typography>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => {
-              navigator.clipboard.writeText(selectedGroup?.joinCode);
-              alert('คัดลอกรหัสเข้าร่วมแล้ว');
-            }}
-            color="primary"
-          >
-            คัดลอก
-          </Button>
+          {selectedGroup?.joinCode && selectedGroup.createdBy === auth.currentUser?.uid && (
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(selectedGroup.joinCode);
+                alert('คัดลอกรหัสเข้าร่วมแล้ว');
+              }}
+              color="primary"
+            >
+              คัดลอก
+            </Button>
+          )}
           <Button onClick={() => setShowJoinCode(false)}>ปิด</Button>
         </DialogActions>
       </Dialog>
+
     </Container>
   );
 }

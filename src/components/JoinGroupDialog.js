@@ -6,76 +6,118 @@ import {
   DialogActions,
   TextField,
   Button,
+  CircularProgress,
+  Typography,
   Box
 } from '@mui/material';
-import { collection, query, where, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  updateDoc, 
+  arrayUnion,
+  addDoc,  // Add this
+  serverTimestamp 
+} from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 
-function JoinGroupDialog({ open, onClose }) {
-  const [groupCode, setGroupCode] = useState('');
+const JoinGroupDialog = ({ open, onClose }) => {
+  const [joinCode, setJoinCode] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleJoin = async () => {
     try {
-      const q = query(
-        collection(db, 'chatGroups'),
-        where('groupCode', '==', groupCode)
-      );
-      const snapshot = await getDocs(q);
+      setError('');
+      setLoading(true);
       
-      if (snapshot.empty) {
-        setError('ไม่พบกลุ่มที่ตรงกับรหัส');
+      // Convert to uppercase and trim whitespace
+      const formattedCode = joinCode.trim().toUpperCase();
+      
+      // Query groups with matching joinCode
+      const groupsQuery = await getDocs(
+        query(
+          collection(db, 'chatGroups'),
+          where('joinCode', '==', formattedCode)
+        )
+      );
+
+      if (groupsQuery.empty) {
+        setError('ไม่พบกลุ่มที่ตรงกับรหัสนี้');
         return;
       }
 
-      const groupDoc = snapshot.docs[0];
-      const groupId = groupDoc.id;  // Get the group ID here
-      
-      await updateDoc(doc(db, 'chatGroups', groupId), {
-        members: [...groupDoc.data().members, auth.currentUser.uid]
+      const groupDoc = groupsQuery.docs[0];
+      const groupData = groupDoc.data();
+
+      // Check if group is still private
+      if (!groupData.isPrivate) {
+        setError('กลุ่มนี้ไม่ใช่กลุ่มส่วนตัวแล้ว');
+        return;
+      }
+
+      // Check if user already member
+      if (groupData.members.includes(auth.currentUser.uid)) {
+        setError('คุณเป็นสมาชิกกลุ่มนี้อยู่แล้ว');
+        return;
+      }
+
+      // Add user to members
+      await updateDoc(doc(db, 'chatGroups', groupDoc.id), {
+        members: arrayUnion(auth.currentUser.uid)
       });
-      
-      // Add system message about joining
-      await addDoc(collection(db, `chatGroups/${groupId}/messages`), {
-        text: `${auth.currentUser.displayName || 'ผู้ใช้'} ได้เข้าร่วมกลุ่ม`,
-        createdAt: new Date(),
+
+      // Add join message
+      await addDoc(collection(db, `chatGroups/${groupDoc.id}/messages`), {
+        text: `${auth.currentUser.displayName} ได้เข้าร่วมกลุ่ม`,
+        createdAt: serverTimestamp(),
         isSystemMessage: true
       });
-      
+
       onClose();
-    } catch (error) {
-      console.error('Error joining group:', error);
+      setJoinCode('');
+    } catch (err) {
+      console.error('Join error:', err);
       setError('เกิดข้อผิดพลาดในการเข้าร่วมกลุ่ม');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>เข้าร่วมกลุ่มส่วนตัว</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>เข้าร่วมกลุ่มด้วยรหัส</DialogTitle>
       <DialogContent>
-        <Box sx={{ mt: 2, width: 300 }}>
+        <Box sx={{ mt: 2 }}>
           <TextField
             fullWidth
-            label="รหัสกลุ่ม"
-            value={groupCode}
-            onChange={(e) => setGroupCode(e.target.value)}
-            error={!!error}
-            helperText={error}
+            label="รหัสเข้าร่วมกลุ่ม"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            inputProps={{ maxLength: 6 }}
           />
+          {error && (
+            <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+              {error}
+            </Typography>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>ยกเลิก</Button>
-        <Button 
+        <Button
           onClick={handleJoin}
+          color="primary"
           variant="contained"
-          disabled={!groupCode.trim()}
+          disabled={!joinCode.trim() || loading}
         >
-          เข้าร่วม
+          {loading ? <CircularProgress size={24} /> : 'เข้าร่วมกลุ่ม'}
         </Button>
       </DialogActions>
     </Dialog>
   );
-}
+};
 
 export default JoinGroupDialog;
