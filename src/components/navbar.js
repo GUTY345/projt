@@ -223,7 +223,8 @@ function Navbar({ user }) {
           borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           top: 0,
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: { xs: 56, sm: 64 }
+          // แก้ไขส่วนนี้เพื่อให้ AppBar แสดงผลถูกต้องบน iOS
+          paddingTop: { xs: 'env(safe-area-inset-top)', sm: 0 }
         }}
       >
         <Toolbar 
@@ -231,7 +232,6 @@ function Navbar({ user }) {
             justifyContent: 'space-between', 
             px: { xs: 2, sm: 4 },
             minHeight: { xs: 56, sm: 64 },
-            // ลบ padding top และ bottom ที่อาจทำให้เกิดปัญหา
           }}
         >
           {isMobile ? (
@@ -367,10 +367,8 @@ function Navbar({ user }) {
       
       {/* เพิ่ม spacer ที่มีความสูงเท่ากับ AppBar + safe area */}
       <Box sx={{ 
-        height: { xs: 56, sm: 64 },
+        height: { xs: 'calc(56px + env(safe-area-inset-top))', sm: 64 },
         width: '100%',
-        // เพิ่ม margin top เพื่อให้เนื้อหาไม่ซ้อนทับกับ status bar
-        mt: { xs: 'env(safe-area-inset-top)', sm: 0 }
       }} />
       
       {isMobile && user && (
