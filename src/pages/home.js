@@ -74,7 +74,7 @@ function Home() {
     },
     {
       title: 'ทำงานร่วมกัน',
-      description: 'แชร์โน้ตและทำงานร่วมกันแบบเรียลไทม์ พร้อมระบบติดตามการเปลี่ยนแปลงและประวัติการแก้ไข',
+      description: 'แชร์โน้ตและทำงานร่วมกันแบบเรียลไทม์ พร้อมระบบติดตามการเปลี่ยนแปลงและประวัตการแก้ไข',
       icon: <GroupIcon sx={{ fontSize: isMobile ? 28 : 32 }} />,
       path: '/notes',
       color: '#00796B',
@@ -89,12 +89,14 @@ function Home() {
       display: 'flex',
       flexDirection: 'column',
       pb: isMobile ? '72px' : 0, // เพิ่ม padding bottom สำหรับ bottom nav
-      mt: isMobile ? '64px' : 0  // ปรับ margin top ให้พอดีกับ navbar
+      // แก้ไขจาก mt: isMobile ? '64px' : 0 เป็นค่าที่เหมาะสมกว่า
+      mt: isMobile ? 'calc(56px + env(safe-area-inset-top))' : 0  // ปรับ margin top ให้พอดีกับ navbar รวม safe area
     }}>
       <Box sx={{
         background: 'linear-gradient(135deg, #009688 0%, #4DB6AC 100%)',
-        pt: isMobile ? 3 : 10,   // ลด padding top บนมือถือ
-        pb: isMobile ? 3 : 12,   // ลด padding bottom บนมือถือ
+        // ลด padding top ลงเพื่อให้พื้นที่ว่างน้อยลง
+        pt: isMobile ? 2 : 10,   // ลด padding top บนมือถือ
+        pb: isMobile ? 2 : 12,   // ลด padding bottom บนมือถือ
         px: isMobile ? 2 : 4,
         color: 'white',
         textAlign: 'center',
@@ -105,7 +107,7 @@ function Home() {
           sx={{
             fontWeight: 700,
             fontSize: isMobile ? '1.75rem' : '3rem',
-            mb: 2,
+            mb: isMobile ? 1 : 2,  // ลด margin bottom บนมือถือ
             letterSpacing: '-0.02em'
           }}
         >
@@ -128,7 +130,8 @@ function Home() {
         flex: 1,
         py: isMobile ? 1.5 : 3,  // ลด padding บนมือถือ
         px: isMobile ? 1 : 3,
-        mt: isMobile ? -1 : -4   // ปรับ overlap น้อยลงบนมือถือ
+        // ปรับ margin top ให้มีการ overlap มากขึ้นบนมือถือ
+        mt: isMobile ? -2 : -4   // เพิ่ม overlap บนมือถือ
       }}>
         <Grid container spacing={isMobile ? 1 : 2}>  {/* ลด spacing ระหว่าง cards */}
           {features.map((feature) => (
