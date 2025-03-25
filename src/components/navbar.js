@@ -222,17 +222,17 @@ function Navbar({ user }) {
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           top: 0,
-          pt: { xs: 'env(safe-area-inset-top)', sm: 0 },  // Add padding for iOS safe area
+          pt: { xs: 'env(safe-area-inset-top)', sm: 0 },  // เพิ่ม padding top สำหรับ notch บน iOS
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: { xs: 'calc(70px + env(safe-area-inset-top))', sm: 'auto' }  // Adjust height
+          height: { xs: 'calc(56px + env(safe-area-inset-top))', sm: '64px' }  // ปรับความสูงให้รองรับ notch
         }}
       >
         <Toolbar 
           sx={{ 
             justifyContent: 'space-between', 
             px: { xs: 2, sm: 4 },
-            minHeight: { xs: '70px', sm: '64px' },
-            mt: { xs: 'env(safe-area-inset-top)', sm: 0 }  // Add margin for content
+            minHeight: { xs: '56px', sm: '64px' },
+            mt: { xs: 'env(safe-area-inset-top)', sm: 0 }  // เพิ่ม margin top สำหรับเนื้อหาใน toolbar
           }}
         >
           {isMobile ? (
@@ -366,9 +366,9 @@ function Navbar({ user }) {
         </Toolbar>
       </AppBar>
       
-      {/* Adjust spacing for taller navbar and iOS safe area */}
+      {/* ปรับความสูงของ spacer ให้ตรงกับ AppBar รวม safe area */}
       <Box sx={{ 
-        height: { xs: 'calc(70px + env(safe-area-inset-top))', sm: '64px' },
+        height: { xs: 'calc(56px + env(safe-area-inset-top))', sm: '64px' },
         width: '100%'
       }} />
       
@@ -382,7 +382,8 @@ function Navbar({ user }) {
             background: 'rgba(255, 255, 255, 0.95)',
             borderTop: '1px solid rgba(0, 0, 0, 0.1)',
             backdropFilter: 'blur(10px)',
-            zIndex: 1200
+            zIndex: 1200,
+            pb: { xs: 'env(safe-area-inset-bottom)', sm: 0 }  // เพิ่ม padding bottom สำหรับ home indicator
           }}
         >
           <Toolbar sx={{ 
@@ -420,8 +421,8 @@ function Navbar({ user }) {
         </AppBar>
       )}
       
-      {/* ปรับ padding สำหรับ bottom navigation */}
-      {isMobile && <Box sx={{ height: '56px', width: '100%' }} />}
+      {/* ปรับ padding สำหรับ bottom navigation รวม safe area */}
+      {isMobile && <Box sx={{ height: 'calc(56px + env(safe-area-inset-bottom))', width: '100%' }} />}
       
       <Menu
         anchorEl={anchorEl}
