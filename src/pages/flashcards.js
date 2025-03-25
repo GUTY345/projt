@@ -83,22 +83,28 @@ function Flashcards() {
         {
           method: 'POST',
           headers: {
-            Authorization: 'Bearer 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',
-            'HTTP-Referer': 'https://www.projt.com',
+            Authorization: 'Bearer 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',
+            'HTTP-Referer': 'https://notenova-five.vercel.app',
             'X-Title': 'AI ChatBot',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'deepseek/deepseek-r1:free',
+            model: 'deepseek/deepseek-chat-v3-0324:free',
             messages: [{ role: 'user', content: messageText }],
           }),
         }
       );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+      }
       const data = await response.json();
+      if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+        throw new Error('Invalid API response format: ' + JSON.stringify(data));
+      }
       const botMessage = {
         id: messages.length + 2,
         sender: 'bot',
-        text: data.choices?.[0]?.message?.content || 'ขออภัย ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้',
+        text: data.choices[0].message.content,
         timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
       };
       setMessages(prev => [...prev, botMessage]);
@@ -311,7 +317,8 @@ function Flashcards() {
       minHeight: '100vh',
       bgcolor: '#FFFFFF',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      paddingTop: { xs: 'env(safe-area-inset-top)', sm: 0 } // เพิ่ม padding สำหรับ Status Bar บนมือถือ
     }}>
       <style>
         {`
@@ -332,6 +339,10 @@ function Flashcards() {
             40% { transform: translateY(-10px); }
             60% { transform: translateY(-5px); }
           }
+          @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
         `}
       </style>
 
@@ -342,17 +353,19 @@ function Flashcards() {
         sx={{ 
           borderBottom: '1px solid #E0E0E0',
           bgcolor: 'white',
-          zIndex: 1300
+          zIndex: 1300,
+          top: 'env(safe-area-inset-top)', // ปรับให้อยู่ใต้ Status Bar
+          pt: { xs: 1, sm: 0 } // เพิ่ม padding-top สำหรับมือถือ
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 48, sm: 64 } }}> {/* ลดความสูงของ Toolbar บนมือถือ */}
           <IconButton
             edge="start"
             color="inherit"
             aria-label="menu"
             onClick={handleDrawerToggle}
             sx={{ 
-              mr: 2,
+              mr: 1, // ลด margin เพื่อให้มีที่ว่างมากขึ้น
               '&:hover': { transform: 'rotate(90deg)', transition: 'transform 0.3s ease' }
             }}
           >
@@ -360,8 +373,21 @@ function Flashcards() {
           </IconButton>
           <Zoom in>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <AutoAwesomeIcon sx={{ color: '#0078D4', mr: 1, animation: 'bounce 2s infinite' }} />
-              <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: '#0078D4' }}>
+              <AutoAwesomeIcon sx={{ 
+                color: '#0078D4', 
+                mr: 1, 
+                animation: 'bounce 2s infinite',
+                fontSize: { xs: '1.2rem', sm: '1.5rem' } // ลดขนาดไอคอนบนมือถือ
+              }} />
+              <Typography 
+                variant="h6" 
+                component="div" 
+                sx={{ 
+                  fontWeight: 600, 
+                  color: '#0078D4',
+                  fontSize: { xs: '1rem', sm: '1.25rem' } // ลดขนาดตัวอักษรบนมือถือ
+                }}
+              >
                 AI Nova
               </Typography>
             </Box>
@@ -371,26 +397,32 @@ function Flashcards() {
             <IconButton 
               color="inherit" 
               sx={{ 
-                mr: 1,
+                mr: 0.5,
                 '&:hover': { transform: 'scale(1.2)', transition: 'transform 0.3s ease' }
               }}
               onClick={() => window.location.href = '/'}
             >
-              <HomeIcon />
+              <HomeIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="ตั้งค่า">
             <IconButton 
               color="inherit"
-              sx={{ '&:hover': { transform: 'rotate(180deg)', transition: 'transform 0.3s ease' } }}
+              sx={{ 
+                '&:hover': { transform: 'rotate(180deg)', transition: 'transform 0.3s ease' }
+              }}
             >
-              <SettingsIcon />
+              <SettingsIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
             </IconButton>
           </Tooltip>
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ display: 'flex', flexGrow: 1, pt: { xs: '56px', sm: '64px' } }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexGrow: 1,
+        pt: { xs: 'calc(48px + env(safe-area-inset-top))', sm: 'calc(64px + env(safe-area-inset-top))' } // ปรับ padding-top ให้เหมาะสม
+      }}>
         <Drawer
           variant={isMobile ? "temporary" : "permanent"}
           open={isMobile ? drawerOpen : true}
@@ -400,8 +432,8 @@ function Flashcards() {
             '& .MuiDrawer-paper': {
               width: 280,
               boxSizing: 'border-box',
-              top: { xs: '56px', sm: '64px' },
-              height: { xs: 'calc(100% - 56px)', sm: 'calc(100% - 64px)' },
+              top: { xs: 'calc(48px + env(safe-area-inset-top))', sm: 'calc(64px + env(safe-area-inset-top))' },
+              height: { xs: 'calc(100% - 48px - env(safe-area-inset-top))', sm: 'calc(100% - 64px - env(safe-area-inset-top))' },
               borderRight: '1px solid #E0E0E0',
               bgcolor: '#F9FAFB',
             }
@@ -474,12 +506,12 @@ function Flashcards() {
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
-            height: { xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)' },
+            height: { xs: 'calc(100vh - 48px - env(safe-area-inset-top))', sm: 'calc(100vh - 64px - env(safe-area-inset-top))' },
             position: 'relative',
             overflow: 'hidden',
             width: { xs: '100%', sm: 'calc(100% - 280px)' },
             ml: { xs: 0, sm: isMobile ? 0 : '280px' },
-            pb: { xs: 'calc(120px + env(safe-area-inset-bottom, 0))', sm: '80px' }
+            pb: { xs: 'calc(100px + env(safe-area-inset-bottom))', sm: '80px' } // ปรับ padding-bottom
           }}
         >
           <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', pb: { xs: 3, sm: 2 } }}>
@@ -493,7 +525,8 @@ function Flashcards() {
                       fontWeight: 600, 
                       color: '#0078D4', 
                       textAlign: 'center',
-                      animation: 'fadeIn 1s ease'
+                      animation: 'fadeIn 1s ease',
+                      fontSize: { xs: '1.25rem', sm: '1.5rem' } // ลดขนาดตัวอักษรบนมือถือ
                     }}
                   >
                     ยินดีต้อนรับสู่ AI Nova
@@ -536,10 +569,11 @@ function Flashcards() {
                           onClick={() => handleSendMessage(suggestion)}
                           sx={{ 
                             borderRadius: 1,
-                            py: 2,
+                            py: 1.5, // ลด padding แนวตั้ง
                             px: 1,
                             bgcolor: 'rgba(0, 120, 212, 0.1)',
                             color: '#0078D4',
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' }, // ลดขนาดตัวอักษร
                             '&:hover': {
                               bgcolor: 'rgba(0, 120, 212, 0.2)',
                               transform: 'scale(1.05)'
@@ -590,7 +624,7 @@ function Flashcards() {
             sx={{ 
               p: { xs: 1, sm: 2 },
               position: 'fixed',
-              bottom: 0,
+              bottom: 'env(safe-area-inset-bottom)', // ปรับให้รองรับ Safe Area
               left: { xs: 0, sm: isMobile ? 0 : '280px' },
               right: 0,
               borderTop: '1px solid #E0E0E0',
@@ -602,8 +636,8 @@ function Flashcards() {
               animation: 'slideUp 0.5s ease'
             }}
           >
-            <Grid container spacing={1} alignItems="center">
-              <Grid item xs>
+            <Grid container spacing={1} alignItems="center" sx={{ px: 1 }}>
+              <Grid item xs={9} sm={10}> {/* ปรับขนาดช่อง TextField */}
                 <TextField
                   fullWidth
                   placeholder="พิมพ์ข้อความของคุณที่นี่..."
@@ -621,7 +655,7 @@ function Flashcards() {
                   InputProps={{
                     sx: {
                       borderRadius: 1,
-                      padding: { xs: '8px 12px', sm: '16px' },
+                      padding: { xs: '6px 10px', sm: '16px' }, // ลด padding บนมือถือ
                       '& fieldset': { borderColor: '#E0E0E0' },
                       '&:hover fieldset': { borderColor: '#0078D4' },
                       '&.Mui-focused fieldset': { borderColor: '#0078D4' },
@@ -630,31 +664,15 @@ function Flashcards() {
                   }}
                 />
               </Grid>
-              <Grid item>
-                <Tooltip title={isRecording ? "หยุดบันทึกเสียง" : "บันทึกเสียง"}>
-                  <IconButton 
-                    color={isRecording ? "error" : "default"} 
-                    onClick={toggleRecording}
-                    sx={{ 
-                      color: isRecording ? '#d32f2f' : '#666',
-                      display: { xs: 'none', sm: 'flex' },
-                      '&:hover': { transform: 'scale(1.2)', transition: 'transform 0.3s ease' }
-                    }}
-                  >
-                    {isRecording ? <MicOffIcon /> : <MicIcon />}
-                  </IconButton>
-                </Tooltip>
-              </Grid>
-              <Grid item>
+              <Grid item xs={3} sm={2} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
-                  endIcon={!isMobile && <SendIcon sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />}
                   onClick={() => handleSendMessage()}
                   disabled={!input.trim() || loading}
                   sx={{ 
                     borderRadius: 2,
-                    px: { xs: 1.5, sm: 3 },
-                    py: { xs: 1, sm: 1 },
+                    px: { xs: 1, sm: 3 },
+                    py: { xs: 0.5, sm: 1 }, // ลด padding แนวตั้ง
                     bgcolor: '#0078D4',
                     '&:hover': { 
                       bgcolor: '#106EBE',
@@ -662,12 +680,12 @@ function Flashcards() {
                     },
                     transition: 'transform 0.3s ease',
                     textTransform: 'none',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' }, // ลดขนาดตัวอักษร
                     minWidth: 'auto',
                     height: '100%',
-                    '& .MuiButton-endIcon': { ml: { xs: 0.5, sm: 1 } }
                   }}
                 >
-                  {isMobile ? 'ส่ง' : 'ส่ง'}
+                  ส่ง
                 </Button>
               </Grid>
             </Grid>
