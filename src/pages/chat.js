@@ -420,10 +420,20 @@ export default Chat;
 function renderMessageGroup(messages, index) {
   const message = messages[index];
   const prevMessage = index > 0 ? messages[index - 1] : null;
+  const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+  
+  // ตรวจสอบว่าควรแสดงส่วนหัวของวันที่หรือไม่
   const showDateHeader = !prevMessage || 
     !isSameDay(message.createdAt.toDate(), prevMessage.createdAt.toDate());
+    
+  // ตรวจสอบว่าเป็นข้อความของผู้ใช้ปัจจุบันหรือไม่
   const isCurrentUser = message.userId === auth.currentUser?.uid;
   const isSystemMessage = message.isSystemMessage;
+  
+  // ตรวจสอบว่าควรแสดง Avatar หรือไม่ (ไม่แสดงถ้าเป็นข้อความต่อเนื่องจากผู้ใช้เดียวกัน)
+  const showAvatar = !nextMessage || 
+    nextMessage.userId !== message.userId || 
+    (nextMessage.createdAt.toDate() - message.createdAt.toDate()) > 60000; // 1 นาที
 
   return (
     <Box key={message.id}>
@@ -441,7 +451,8 @@ function renderMessageGroup(messages, index) {
               py: 0.5,
               bgcolor: 'rgba(0, 0, 0, 0.04)',
               borderRadius: 5,
-              color: 'text.secondary'
+              color: 'text.secondary',
+              fontWeight: 500
             }}
           >
             {formatDate(message.createdAt.toDate(), 'EEEE, MMMM d', { locale: th })}
@@ -476,47 +487,66 @@ function renderMessageGroup(messages, index) {
               flexDirection: isCurrentUser ? 'row-reverse' : 'row',
               alignItems: 'flex-end',
               gap: 1,
-              mb: 1
+              mb: 0.75,
+              px: 0.5
             }}
           >
-            <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
-              <Avatar 
-                src={message.userPhoto} 
-                sx={{ 
-                  width: 32, 
-                  height: 32,
-                  opacity: 0.9,
-                  transition: 'opacity 0.2s',
-                  '&:hover': {
-                    opacity: 1
-                  }
-                }} 
-              />
-            </Tooltip>
+            {showAvatar ? (
+              <Tooltip title={message.userName} placement={isCurrentUser ? "left" : "right"}>
+                <Avatar 
+                  src={message.userPhoto} 
+                  sx={{ 
+                    width: 28, 
+                    height: 28,
+                    opacity: 0.9,
+                    transition: 'opacity 0.2s',
+                    '&:hover': {
+                      opacity: 1
+                    }
+                  }} 
+                />
+              </Tooltip>
+            ) : (
+              <Box sx={{ width: 28, height: 28, flexShrink: 0 }} /> // Placeholder เพื่อรักษาการจัดวาง
+            )}
             <Box
               sx={{
-                maxWidth: '70%',
+                maxWidth: '75%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: isCurrentUser ? 'flex-end' : 'flex-start'
               }}
             >
+              {(!prevMessage || prevMessage.userId !== message.userId) && !isCurrentUser && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    ml: 0.5, 
+                    mb: 0.3, 
+                    fontWeight: 500,
+                    fontSize: '0.75rem',
+                    color: 'text.secondary'
+                  }}
+                >
+                  {message.userName}
+                </Typography>
+              )}
               <Paper
                 elevation={0}
                 sx={{
-                  p: 1.5,
-                  bgcolor: isCurrentUser ? 'primary.light' : 'background.paper',
+                  p: 1.25,
+                  bgcolor: isCurrentUser ? '#009688' : 'background.paper',
                   color: isCurrentUser ? 'white' : 'inherit',
                   borderRadius: 2,
                   maxWidth: '100%',
                   wordBreak: 'break-word',
                   boxShadow: isCurrentUser 
-                    ? '0 1px 2px rgba(25, 118, 210, 0.15)'
+                    ? '0 1px 2px rgba(0, 150, 136, 0.15)'
                     : '0 1px 2px rgba(0,0,0,0.1)',
                   position: 'relative'
                 }}
               >
-                <Typography sx={{ fontSize: '0.95rem' }}>
+                <Typography sx={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
                   {message.text}
                 </Typography>
               </Paper>
@@ -524,9 +554,10 @@ function renderMessageGroup(messages, index) {
                 variant="caption" 
                 color="text.secondary"
                 sx={{ 
-                  mt: 0.5,
-                  fontSize: '0.7rem',
-                  opacity: 0.8
+                  mt: 0.3,
+                  fontSize: '0.65rem',
+                  opacity: 0.8,
+                  px: 0.5
                 }}
               >
                 {formatDistanceToNow(message.createdAt.toDate(), { 
