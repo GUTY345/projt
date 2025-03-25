@@ -29,13 +29,19 @@ import Chat from './pages/chat';
 import MoodBoard from './pages/moodboard';
 import Notes from './pages/Notes';
 import Profile from './pages/profile';
+// เพิ่ม import ด้านบน
+import Settings from './pages/settings';
+import { ColorModeProvider } from './theme/ColorModeContext';
+
+// Add this import at the top with other imports
+import '@fontsource/prompt';
+import '@fontsource/prompt/300';
+import '@fontsource/prompt/500';
+import '@fontsource/prompt/700';
 
 function App() {
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
+  const [darkMode, setDarkMode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -43,81 +49,124 @@ function App() {
     severity: 'info'
   });
 
-  // Create theme based on dark mode
-  const appTheme = useMemo(() => createAppTheme(darkMode), [darkMode]);
+  // Create theme
+  // Update the theme creation
+  const appTheme = useMemo(() => 
+    createTheme({
+      palette: {
+        mode: darkMode ? 'dark' : 'light',
+      },
+      typography: {
+        fontFamily: [
+          'Prompt',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          'sans-serif',
+        ].join(','),
+        h1: {
+          fontWeight: 500,
+        },
+        h2: {
+          fontWeight: 500,
+        },
+        h3: {
+          fontWeight: 500,
+        },
+        h4: {
+          fontWeight: 500,
+        },
+        h5: {
+          fontWeight: 500,
+        },
+        h6: {
+          fontWeight: 500,
+        },
+        subtitle1: {
+          fontWeight: 300,
+        },
+        body1: {
+          fontWeight: 300,
+        }
+      },
+    }), 
+    [darkMode]
+  );
 
   useEffect(() => {
-    // Check if it's user's first visit
     if (user && !localStorage.getItem('welcomeShown')) {
       setShowWelcome(true);
       localStorage.setItem('welcomeShown', 'true');
     }
-
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode, user]);
+  }, [user]);
 
   const handleThemeToggle = () => {
     setDarkMode(prev => !prev);
   };
 
   return (
-    <ThemeProvider theme={appTheme}>
-      <CssBaseline />
+    <ColorModeProvider>
       <Router>
-        <Box sx={{ 
-          minHeight: 'calc(var(--vh, 1vh) * 100)',
-          WebkitTouchCallout: 'none',
-          WebkitUserSelect: 'none',
-          WebkitTapHighlightColor: 'transparent'
-        }}>
-          {user ? (
-            <>
-              <Navbar 
-                user={user} 
-                darkMode={darkMode}
-                onThemeToggle={handleThemeToggle}
-              />
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/ideas" element={<IdeaBoard />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/moodboard" element={<MoodBoard />} />
-                  <Route path="/notes" element={<Notes />} />
-                  <Route path="/profile/:userId?" element={<Profile />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </Suspense>
-              <WelcomeDialog 
-                open={showWelcome} 
-                onClose={() => setShowWelcome(false)} 
-              />
-            </>
-          ) : (
-            <Routes>
-              <Route path="/" element={<Welcome />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          )}
+        <ThemeProvider theme={appTheme}>
+          <CssBaseline />
+          <Box sx={{ 
+            minHeight: 'calc(var(--vh, 1vh) * 100)',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            WebkitTapHighlightColor: 'transparent'
+          }}>
+            {user ? (
+              <>
+                <Navbar 
+                  user={user} 
+                  darkMode={darkMode}
+                  onThemeToggle={handleThemeToggle}
+                />
+                <Suspense fallback={<LoadingScreen />}>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/ideas" element={<IdeaBoard />} />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/notes" element={<Notes />} />
+                    <Route path="/profile/:userId?" element={<Profile />} />
+                    <Route path="/settings" element={<Settings />} /> {/* เพิ่มบรรทัดนี้ */}
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </Suspense>
+                <WelcomeDialog 
+                  open={showWelcome} 
+                  onClose={() => setShowWelcome(false)} 
+                />
+              </>
+            ) : (
+              <Routes>
+                <Route path="/" element={<Welcome />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            )}
 
-          <Snackbar
-            open={snackbar.open}
-            autoHideDuration={4000}
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          >
-            <Alert 
-              onClose={() => setSnackbar({ ...snackbar, open: false })} 
-              severity={snackbar.severity}
-              sx={{ width: '100%' }}
+            <Snackbar
+              open={snackbar.open}
+              autoHideDuration={4000}
+              onClose={() => setSnackbar({ ...snackbar, open: false })}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
-              {snackbar.message}
-            </Alert>
-          </Snackbar>
-        </Box>
+              <Alert 
+                onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                severity={snackbar.severity}
+                sx={{ width: '100%' }}
+              >
+                {snackbar.message}
+              </Alert>
+            </Snackbar>
+          </Box>
+        </ThemeProvider>
       </Router>
-    </ThemeProvider>
+    </ColorModeProvider>
   );
 }
 

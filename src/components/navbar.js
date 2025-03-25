@@ -1,27 +1,24 @@
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar, useTheme, useMediaQuery, Drawer, List, ListItem, ListItemText, Dialog, DialogContent } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, Avatar, useTheme, useMediaQuery, Drawer, List, ListItem, ListItemText, Dialog, DialogContent, Badge, Popover } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { useNavigate, useLocation } from 'react-router-dom';  // รวม useLocation ไว้ที่นี่
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { auth } from '../firebase/config';
-import { Badge, Popover } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
-import { /* existing imports */ } from '@mui/material';
-// เพิ่ม imports สำหรับไอคอน
 import HomeIcon from '@mui/icons-material/Home';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import ChatIcon from '@mui/icons-material/Chat';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import NotesIcon from '@mui/icons-material/Notes';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
-import { limit } from 'firebase/firestore';
+
+// Add import at the top with other icons
+import SettingsIcon from '@mui/icons-material/Settings';
 
 function Navbar({ user }) {
   const navigate = useNavigate();
-  const location = useLocation();  // เพิ่ม location
-  const [anchorEl, setAnchorEl] = useState(null);
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -30,49 +27,30 @@ function Navbar({ user }) {
     { text: 'หน้าแรก', path: '/', icon: <HomeIcon /> },
     { text: 'ไอเดีย', path: '/ideas', icon: <LightbulbIcon /> },
     { text: 'แชท', path: '/chat', icon: <ChatIcon /> },
-    // ปิดหน้า moodboard ชั่วคราว แต่ยังแสดงในเมนู
     { text: 'มู้ดบอร์ด', path: '/moodboard-disabled', icon: <ColorLensIcon /> },
-    { text: 'โน้ต', path: '/notes', icon: <NotesIcon /> }
+    { text: 'โน้ต', path: '/notes', icon: <NotesIcon /> },
+    // Add settings menu item
+    { text: 'การตั้งค่า', path: '/settings', icon: <SettingsIcon /> }
   ];
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleProfileClick = () => {
+    navigate('/profile');
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  // เพิ่ม state สำหรับ modal แจ้งเตือน
   const [openMoodboardAlert, setOpenMoodboardAlert] = useState(false);
 
-  // เพิ่มฟังก์ชันสำหรับจัดการการนำทางไปยังหน้าต่างๆ
-  // แก้ไขฟังก์ชัน handleNavigation ให้ทำงานถูกต้อง
   const handleNavigation = (path) => {
     if (path === '/moodboard-disabled') {
-      // แสดง modal แจ้งเตือนแทนการนำทางไปยังหน้า moodboard
       setOpenMoodboardAlert(true);
     } else {
       navigate(path);
     }
-    
-    // ปิด drawer ถ้าเปิดอยู่
     if (mobileOpen) {
       handleDrawerToggle();
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      handleClose();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
@@ -96,10 +74,7 @@ function Navbar({ user }) {
           <ListItem 
             button 
             key={item.text}
-            onClick={() => {
-              navigate(item.path);
-              handleDrawerToggle();
-            }}
+            onClick={() => handleNavigation(item.path)}
             sx={{
               mb: 1,
               borderRadius: '0 25px 25px 0',
@@ -140,12 +115,11 @@ function Navbar({ user }) {
 
   useEffect(() => {
     if (user) {
-      // Query notifications for both chat messages and new posts
       const notificationsRef = collection(db, 'notifications');
       const q = query(
         notificationsRef,
         where('userId', '==', user.uid),
-        where('type', 'in', ['chat', 'post']), // เพิ่มการกรองประเภทการแจ้งเตือน
+        where('type', 'in', ['chat', 'post']),
         where('read', '==', false),
         orderBy('createdAt', 'desc'),
         limit(10)
@@ -167,7 +141,6 @@ function Navbar({ user }) {
 
   const handleNotificationClick = async (event, notification = null) => {
     if (notification) {
-      // กรณีคลิกที่การแจ้งเตือน
       if (!notification.read) {
         try {
           const notificationRef = doc(db, 'notifications', notification.id);
@@ -183,7 +156,6 @@ function Navbar({ user }) {
         navigate(notification.link);
       }
     } else {
-      // กรณีคลิกที่ไอคอนการแจ้งเตือน
       setNotificationAnchorEl(event.currentTarget);
     }
   };
@@ -194,7 +166,6 @@ function Navbar({ user }) {
 
   const handleMarkAllAsRead = async () => {
     try {
-      // อัพเดททุกการแจ้งเตือนที่ยังไม่ได้อ่าน
       const promises = notifications.map(notification => {
         if (!notification.read) {
           const notificationRef = doc(db, 'notifications', notification.id);
@@ -210,8 +181,6 @@ function Navbar({ user }) {
     }
   };
 
-  // ลบฟังก์ชัน handleNavigationClick ที่ซ้ำออก
-
   return (
     <>
       <AppBar 
@@ -223,7 +192,6 @@ function Navbar({ user }) {
           borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           top: 0,
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          // แก้ไขส่วนนี้เพื่อให้ AppBar แสดงผลถูกต้องบน iOS
           paddingTop: { xs: 'env(safe-area-inset-top)', sm: 0 }
         }}
       >
@@ -264,7 +232,7 @@ function Navbar({ user }) {
                     <NotificationsIcon />
                   </Badge>
                 </IconButton>
-                <IconButton onClick={handleMenu}>
+                <IconButton onClick={handleProfileClick}>
                   <Avatar 
                     src={user.photoURL} 
                     alt={user.displayName}
@@ -339,7 +307,7 @@ function Navbar({ user }) {
                   </Badge>
                 </IconButton>
                 <IconButton 
-                  onClick={handleMenu}
+                  onClick={handleProfileClick}
                   sx={{ 
                     p: 0.5,
                     '&:hover': { bgcolor: 'rgba(74, 144, 226, 0.08)' }
@@ -364,8 +332,7 @@ function Navbar({ user }) {
           )}
         </Toolbar>
       </AppBar>
-      
-      {/* เพิ่ม spacer ที่มีความสูงเท่ากับ AppBar + safe area */}
+
       <Box sx={{ 
         height: { xs: 'calc(56px + env(safe-area-inset-top))', sm: 64 },
         width: '100%',
@@ -382,7 +349,7 @@ function Navbar({ user }) {
             borderTop: '1px solid rgba(0, 0, 0, 0.1)',
             backdropFilter: 'blur(10px)',
             zIndex: 1200,
-            pb: { xs: 'env(safe-area-inset-bottom)', sm: 0 }  // เพิ่ม padding bottom สำหรับ home indicator
+            pb: { xs: 'env(safe-area-inset-bottom)', sm: 0 }
           }}
         >
           <Toolbar sx={{ 
@@ -420,31 +387,8 @@ function Navbar({ user }) {
         </AppBar>
       )}
       
-      {/* ปรับ padding สำหรับ bottom navigation รวม safe area */}
       {isMobile && <Box sx={{ height: 'calc(56px + env(safe-area-inset-bottom))', width: '100%' }} />}
       
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleClose}
-        PaperProps={{
-          sx: {
-            mt: 1,
-            minWidth: 120
-          }
-        }}
-      >
-        <MenuItem onClick={() => {
-          handleClose();
-          navigate('/profile');
-        }}>
-          โปรไฟล์
-        </MenuItem>
-        <MenuItem onClick={handleLogout}>
-          ออกจากระบบ
-        </MenuItem>
-      </Menu>
-
       <Popover
         open={Boolean(notificationAnchorEl)}
         anchorEl={notificationAnchorEl}
@@ -465,7 +409,6 @@ function Navbar({ user }) {
           }
         }}
       >
-        
         <Typography variant="h6" sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>การแจ้งเตือน</span>
           {notifications.length > 0 && (
@@ -528,7 +471,6 @@ function Navbar({ user }) {
         )}
       </Popover>
       
-      {/* เพิ่ม Dialog สำหรับแจ้งเตือนเมื่อผู้ใช้พยายามเข้าถึงหน้า Moodboard */}
       <Dialog
         open={openMoodboardAlert}
         onClose={() => setOpenMoodboardAlert(false)}
@@ -556,7 +498,7 @@ function Navbar({ user }) {
                 textTransform: 'none'
               }}
             >
-              เข้าใจแล้ว
+              เข้าใจ
             </Button>
           </Box>
         </DialogContent>
